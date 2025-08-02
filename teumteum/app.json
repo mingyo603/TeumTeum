@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "addtask",
-    "slug": "addtask",
+    "name": "teumteum",
+    "slug": "teumteum",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "addtask",
+    "scheme": "teumteum",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
