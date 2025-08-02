@@ -1,10 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import ScheduleItem from '../components/ScheduleItem';
 import { IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AddSchedulePopup from '@/components/AddSchedulePopup'; // 또는 상대경로
 
 export default function ScheduleManageScreen() {
+  
+  const [isPopupVisible, setPopupVisible] = useState(false);
+
+  const showPopup = () => setPopupVisible(true);
+  const hidePopup = () => setPopupVisible(false);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -30,9 +37,12 @@ export default function ScheduleManageScreen() {
         <ScheduleItem label="수영 강습" />
 
       </ScrollView>
+      
       <View style={styles.fabContainer}>
-        <IconButton icon="plus" size={40} iconColor="#591A85" style={styles.fab} />
+        <IconButton icon="plus" size={40} iconColor="#591A85" style={styles.fab} onPress={showPopup}/>
       </View>
+
+      {isPopupVisible && <AddSchedulePopup onClose={hidePopup} />}
     </SafeAreaView>
   );
 }
