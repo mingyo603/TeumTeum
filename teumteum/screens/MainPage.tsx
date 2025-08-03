@@ -148,8 +148,13 @@ export default function ScheduleScreen({checked_color = 'white' }: ScheduleItem)
         pickerStyleIOS={{ backgroundColor: PURPLE }}
       />
 
-      <View style={styles.alertBox}>
-        <Text style={styles.alertText}>🔔 {selectedDate} 일정 확인하세요!</Text>
+      <View>
+        <Pressable onPress={() => router.push('/Manage')}>
+          <View style={styles.alertBox}>
+            <IconButton icon="bullhorn-outline" size={24} />
+            <Text style={styles.alertText}>{selectedDate} 일정 확인하세요!</Text>
+          </View>
+        </Pressable>
       </View>
 
       {/* 🔧 시간/일정 헤더를 일정 row와 구조 맞춤 */}
@@ -221,8 +226,9 @@ const styles = StyleSheet.create({
   },
   alertBox: {
     backgroundColor: "#e0e0e0",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingHorizontal: 6,
+    flexDirection: 'row',
+    alignItems: 'center', // ← 세로 정렬
   },
   alertText: {
     fontSize: 14,

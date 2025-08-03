@@ -8,10 +8,11 @@ import {
   StyleSheet,
   Modal,
   Dimensions,
-  TouchableWithoutFeedback,
+  TouchableWithoutFeedback, 
 } from 'react-native';
 import DatePicker from './DatePickercomp';
 import { IconButton } from 'react-native-paper';
+
 interface AddSchedulePopupProps {
   onClose: () => void;
 }
@@ -21,87 +22,93 @@ const { width, height } = Dimensions.get('window');
 const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
   const categories = ['장기', '추천', '일정'];
   const [selectedCategory, setSelectedCategory] = useState('장기');
+  const [activeTab, setActiveTab] = useState<'장기' | '추천' | '일정'>('장기');
+  const [title, setTitle] = useState('');
   const [endDate, setEndDate] = useState(new Date()); // 종료 날짜 상태
-  const [visible, setVisible] = useState(false);
 
   return (
     <Modal transparent visible animationType="fade">
-      <View style={styles.overlay}>
-        <View style={styles.popupContainer}>
-          {/* 탭 선택 */}
-          <View style={styles.header}>
-            <IconButton icon="arrow-left" size={22} disabled style={{ opacity: 0 }} />
-          <View style={styles.segmentedContainer}>
-            {categories.map((category, index) => (
-              <Pressable
-                key={index}
-                style={[
-                  styles.segmentButton,
-                  selectedCategory === category && styles.selectedSegment,
-                  index === 0 ? styles.leftSegment : index === categories.length - 1 ? styles.rightSegment : null,
-                ]}
-                onPress={() => setSelectedCategory(category)}
-              >
-                <Text
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.overlay}>
+          <View
+            style={styles.popupContainer}
+            onStartShouldSetResponder={() => true}  // 팝업 내부는 닫히지 않도록
+          >
+            {/* 탭 선택 */}
+            <View style={styles.header}>
+              <IconButton icon="arrow-left" size={22} disabled style={{ opacity: 0 }} />
+            <View style={styles.segmentedContainer}>
+              {categories.map((category, index) => (
+                <Pressable
+                  key={index}
                   style={[
-                    styles.segmentText,
-                    selectedCategory === category && styles.selectedSegmentText,
+                    styles.segmentButton,
+                    selectedCategory === category && styles.selectedSegment,
+                    index === 0 ? styles.leftSegment : index === categories.length - 1 ? styles.rightSegment : null,
                   ]}
+                  onPress={() => setSelectedCategory(category)}
                 >
-                  {category}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          <IconButton icon="close-box" size={22} iconColor="#591A85" onPress={onClose} />
-          </View>
-
-          {/* 공통 입력 */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>제목</Text>
-            <TextInput placeholder="입력하세요" style={styles.textInput} />
-          </View>
-
-          {/* 탭 별 입력 */}
-          {selectedCategory === '장기' && (
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>종료 날짜</Text>
-              <DatePicker date={endDate} onChange={setEndDate}/>
+                  <Text
+                    style={[
+                      styles.segmentText,
+                      selectedCategory === category && styles.selectedSegmentText,
+                    ]}
+                  >
+                    {category}
+                  </Text>
+                </Pressable>
+              ))}
             </View>
-          )}
-
-          {selectedCategory === '추천' && (
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>소요 시간</Text>
-              <View style={styles.rowBox}>
-                <TextInput style={styles.durationInput} placeholder="00" />
-                <Text>분</Text>
-              </View>
+            <IconButton icon="close-box" size={22} iconColor="#591A85" onPress={onClose} />
             </View>
-          )}
 
-          {selectedCategory === '일정' && (
-            <>
+            {/* 공통 입력 */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>제목</Text>
+              <TextInput placeholder="입력하세요" style={styles.textInput} />
+            </View>
+
+            {/* 탭 별 입력 */}
+            {selectedCategory === '장기' && (
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>날짜</Text>
+                <Text style={styles.label}>종료 날짜</Text>
                 <DatePicker date={endDate} onChange={setEndDate}/>
               </View>
+            )}
+
+            {selectedCategory === '추천' && (
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>시간</Text>
+                <Text style={styles.label}>소요 시간</Text>
                 <View style={styles.rowBox}>
-                  <TextInput style={styles.timeInput} placeholder="00" />
-                  <Text>:</Text>
-                  <TextInput style={styles.timeInput} placeholder="00" />
-                  <Text> ~ </Text>
-                  <TextInput style={styles.timeInput} placeholder="00" />
-                  <Text>:</Text>
-                  <TextInput style={styles.timeInput} placeholder="00" />
+                  <TextInput style={styles.durationInput} placeholder="00" />
+                  <Text>분</Text>
                 </View>
               </View>
-            </>
-          )}
+            )}
+
+            {selectedCategory === '일정' && (
+              <>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>날짜</Text>
+                  <DatePicker date={endDate} onChange={setEndDate}/>
+                </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>시간</Text>
+                  <View style={styles.rowBox}>
+                    <TextInput style={styles.timeInput} placeholder="00" />
+                    <Text>:</Text>
+                    <TextInput style={styles.timeInput} placeholder="00" />
+                    <Text> ~ </Text>
+                    <TextInput style={styles.timeInput} placeholder="00" />
+                    <Text>:</Text>
+                    <TextInput style={styles.timeInput} placeholder="00" />
+                  </View>
+                </View>
+              </>
+            )}
+          </View>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 };

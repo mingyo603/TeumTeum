@@ -23,7 +23,7 @@ export default function ScheduleCompletedScreen() {
       <ScrollView contentContainerStyle={styles.container}>
         {Object.entries(scheduleData).map(([category, items]) => (
           <View key={category}>
-            <Text style={styles.sectionTitle}>{category} 일정</Text>
+            <Text style={styles.sectionTitle} key={category}>{category} 일정</Text>
             {items.map((item) => (
               <ScheduleItem label={item} />
             ))}
