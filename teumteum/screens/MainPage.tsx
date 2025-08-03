@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { IconButton, Checkbox } from 'react-native-paper';
 import {
   Pressable,
   SafeAreaView,
@@ -9,17 +10,22 @@ import {
   View,
   Alert,
   Platform,
+  Dimensions, 
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { useRouter } from 'expo-router';
 
 const PURPLE = "#7B52AA";
 const LIGHT_PURPLE = "#A580C0";
 
 interface ScheduleItem {
-  time: string;
+  timeStart: string;
+  timeEnd: string;
   text: string;
   checked: boolean;
+  color?: string;
+  checked_color?: string;
 }
 
 interface ScheduleData {
@@ -34,10 +40,11 @@ const getTodayString = (): string => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
-export default function ScheduleScreen() {
+export default function ScheduleScreen({checked_color = 'white' }: ScheduleItem) {
   const [selectedDate, setSelectedDate] = useState<string>(getTodayString());
   const [visibleSchedule, setVisibleSchedule] = useState<ScheduleItem[]>([]);
   const [isDatePickerVisible, setDatePickerVisibility] = useState<boolean>(false);
+  const router = useRouter();
 
   useEffect(() => {
     const loadData = async () => {
@@ -48,7 +55,8 @@ export default function ScheduleScreen() {
         if (!parsed[selectedDate] || parsed[selectedDate].length === 0) {
           parsed[selectedDate] = [
             {
-              time: "12:00 ~ 13:00",
+              timeStart: "12:00",
+              timeEnd: "13:00",
               text: "당신을 위한 일정 관리 앱, 틈틈이",
               checked: false,
             },
@@ -63,6 +71,43 @@ export default function ScheduleScreen() {
     };
 
     loadData();
+
+    // 개발용 데이터 초기화
+    const overwrite = async () => {
+      const updated = {
+        [selectedDate]: [
+          {
+            timeStart: "10:00",
+            timeEnd: "11:00",
+            text: "수영",
+            checked: false,
+          },
+          {
+            timeStart: "12:00",
+            timeEnd: "13:00",
+            text: "점심식사",
+            checked: false,
+          },
+          {
+            timeStart: "14:00",
+            timeEnd: "16:00",
+            text: "조 모임",
+            checked: false,
+          },
+          {
+            timeStart: "18:00",
+            timeEnd: "19:00",
+            text: "약속",
+            checked: false,
+          },
+        ],
+      };
+      await AsyncStorage.setItem("scheduleData", JSON.stringify(updated));
+      setVisibleSchedule(updated[selectedDate]);
+    };
+
+    overwrite();
+
   }, [selectedDate]);
 
   const toggleCheck = async (index: number) => {
@@ -92,7 +137,7 @@ export default function ScheduleScreen() {
         <Pressable onPress={() => setDatePickerVisibility(true)} style={styles.dateButton}>
           <Text style={styles.dateText}>{selectedDate}</Text>
         </Pressable>
-        <Text style={styles.menuIcon}>☰</Text>
+        <IconButton icon="format-list-bulleted" size={24} iconColor="white" onPress={() => router.push('/Manage')} />
       </View>
 
       <DateTimePickerModal
@@ -108,36 +153,44 @@ export default function ScheduleScreen() {
       </View>
 
       {/* 🔧 시간/일정 헤더를 일정 row와 구조 맞춤 */}
-      <View style={styles.scheduleRow}>
-        <View style={styles.timeBox}>
-          <Text style={[styles.columnHeader, styles.centerText]}>시간</Text>
-        </View>
-        <View style={styles.verticalLine} />
-        <View style={styles.scheduleHeaderBox}>
-          <Text style={[styles.columnHeader, styles.centerText]}>일정</Text>
-        </View>
-      </View>
+      <View style={[{ paddingHorizontal: 20, paddingVertical: 14 }]}>
 
-      <ScrollView>
-        {visibleSchedule.map((item, index) => (
-          <View key={index} style={styles.scheduleRow}>
-            <View style={styles.timeBox}>
-              <Text style={styles.timeText}>{item.time}</Text>
-            </View>
-            <View style={styles.verticalLine} />
-            <Pressable
-              onPress={() => toggleCheck(index)}
-              style={[
-                styles.scheduleItem,
-                item.checked ? styles.checkedItem : styles.uncheckedItem,
-              ]}
-            >
-              <Text style={styles.checkbox}>{item.checked ? "☑" : "☐"}</Text>
-              <Text numberOfLines={2} style={styles.scheduleText}>{item.text}</Text>
-            </Pressable>
+        <View style={styles.scheduleRow}>
+          <View style={styles.timeBox}>
+            <Text style={[styles.columnHeader, styles.centerText]}>시간</Text>
           </View>
-        ))}
-      </ScrollView>
+          <View style={[styles.verticalLine, { marginTop: 10 }]} />
+          <View style={styles.scheduleHeaderBox}>
+            <Text style={[styles.columnHeader, styles.centerText]}>일정</Text>
+          </View>
+        </View>
+        <ScrollView contentContainerStyle={{ paddingBottom: 200 }}>
+          {visibleSchedule.map((item, index) => (
+            <View key={index} style={styles.scheduleRow}>
+              <View style={styles.timeBox}>
+                <Text style={styles.timeText}>{item.timeStart}</Text>
+                <Text style={styles.timeText}>~</Text>
+                <Text style={styles.timeText}>{item.timeEnd}</Text>
+              </View>
+              <View style={styles.verticalLine} />
+              <Pressable 
+                style={[
+                  styles.scheduleItem,
+                  item.checked ? styles.checkedItem : styles.uncheckedItem,
+                ]}
+                onPress={() => toggleCheck(index)}>
+                <View style={{ marginLeft: -8, marginRight: 8 }}>
+                  <Checkbox
+                    status={item.checked ? 'checked' : 'unchecked'}
+                    color="#FFFFFF" uncheckedColor="#FFFFFF" 
+                  />
+                </View>
+                <Text numberOfLines={2} style={[styles.scheduleText]}>{item.text}</Text>
+              </Pressable>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -166,10 +219,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "white",
   },
-  menuIcon: {
-    fontSize: 24,
-    color: "white",
-  },
   alertBox: {
     backgroundColor: "#e0e0e0",
     paddingVertical: 6,
@@ -182,13 +231,12 @@ const styles = StyleSheet.create({
   scheduleRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
   },
   timeBox: {
     width: 90,
     justifyContent: "center",
     alignItems: "center",
+    paddingVertical: 14, 
   },
   timeText: {
     fontSize: 15,
@@ -198,9 +246,9 @@ const styles = StyleSheet.create({
   },
   verticalLine: {
     width: 1,
-    height: "100%",
     backgroundColor: "#999",
     marginHorizontal: 8,
+    alignSelf: 'stretch',
   },
   scheduleItem: {
     flexDirection: "row",
@@ -215,11 +263,6 @@ const styles = StyleSheet.create({
   },
   uncheckedItem: {
     backgroundColor: LIGHT_PURPLE,
-  },
-  checkbox: {
-    fontSize: 20,
-    marginRight: 12,
-    color: "white",
   },
   scheduleText: {
     color: "white",

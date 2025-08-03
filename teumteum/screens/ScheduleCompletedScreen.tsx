@@ -3,26 +3,32 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import ScheduleItem from '../components/ScheduleItem';
 import { IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 export default function ScheduleCompletedScreen() {
+  const router = useRouter();
+  
+  const scheduleData = {
+    장기: ['SW 대회', '운전면허', '컴활 자격증'],
+    추천: ['영단어 암기', '자격증 공부', '스트레칭'],
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
+      <View style={styles.header}>
+        <IconButton icon="arrow-left" size={22} onPress={() => router.back()} />
+        <Text style={styles.title}>완료됨</Text>
+        <IconButton icon="trash-can-outline" size={22} disabled style={{ opacity: 0 }} />
+      </View>
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.header}>
-          <IconButton icon="arrow-left" size={22} onPress={() => { /* 뒤로가기 로직 */ }} />
-          <Text style={styles.title}>완료됨</Text>
-          <IconButton icon="trash-can-outline" size={22} disabled style={{ opacity: 0 }} />
-        </View>
-
-        <Text style={styles.sectionTitle}>장기 일정</Text>
-        <ScheduleItem label="SW 대회" checked />
-        <ScheduleItem label="운전면허" checked />
-        <ScheduleItem label="컴활 자격증" checked />
-
-        <Text style={styles.sectionTitle}>추천 활동</Text>
-        <ScheduleItem label="영단어 암기" checked />
-        <ScheduleItem label="자격증 공부" checked />
-        <ScheduleItem label="스트레칭" checked />
+        {Object.entries(scheduleData).map(([category, items]) => (
+          <View key={category}>
+            <Text style={styles.sectionTitle}>{category} 일정</Text>
+            {items.map((item) => (
+              <ScheduleItem label={item} />
+            ))}
+          </View>
+        ))}
       </ScrollView>
     </SafeAreaView>
   );

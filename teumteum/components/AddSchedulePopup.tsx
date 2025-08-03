@@ -8,41 +8,52 @@ import {
   StyleSheet,
   Modal,
   Dimensions,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import DatePicker from './DatePickercomp';
-
+import { IconButton } from 'react-native-paper';
 interface AddSchedulePopupProps {
   onClose: () => void;
-  date: Date;
 }
 
 const { width, height } = Dimensions.get('window');
 
 const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
-  const [activeTab, setActiveTab] = useState<'장기' | '추천' | '일정'>('장기');
-  const [title, setTitle] = useState('');
+  const categories = ['장기', '추천', '일정'];
+  const [selectedCategory, setSelectedCategory] = useState('장기');
   const [endDate, setEndDate] = useState(new Date()); // 종료 날짜 상태
+  const [visible, setVisible] = useState(false);
 
   return (
     <Modal transparent visible animationType="fade">
       <View style={styles.overlay}>
         <View style={styles.popupContainer}>
           {/* 탭 선택 */}
-          <View style={styles.tabRow}>
-            {['장기', '추천', '일정'].map((tab) => (
+          <View style={styles.header}>
+            <IconButton icon="arrow-left" size={22} disabled style={{ opacity: 0 }} />
+          <View style={styles.segmentedContainer}>
+            {categories.map((category, index) => (
               <Pressable
-                key={tab}
+                key={index}
                 style={[
-                  styles.tabButton,
-                  activeTab === tab && styles.activeTab,
+                  styles.segmentButton,
+                  selectedCategory === category && styles.selectedSegment,
+                  index === 0 ? styles.leftSegment : index === categories.length - 1 ? styles.rightSegment : null,
                 ]}
-                onPress={() => setActiveTab(tab as typeof activeTab)}>
-                <Text style={styles.tabText}>{tab}</Text>
+                onPress={() => setSelectedCategory(category)}
+              >
+                <Text
+                  style={[
+                    styles.segmentText,
+                    selectedCategory === category && styles.selectedSegmentText,
+                  ]}
+                >
+                  {category}
+                </Text>
               </Pressable>
             ))}
-            <Pressable onPress={onClose}>
-                <Text style={styles.closeButton}>❌</Text>
-            </Pressable>
+          </View>
+          <IconButton icon="close-box" size={22} iconColor="#591A85" onPress={onClose} />
           </View>
 
           {/* 공통 입력 */}
@@ -52,13 +63,14 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
           </View>
 
           {/* 탭 별 입력 */}
-          {activeTab === '장기' && (
+          {selectedCategory === '장기' && (
             <View style={styles.inputGroup}>
-                <DatePicker label="종료 날짜" date={endDate} onChange={setEndDate}/>
+              <Text style={styles.label}>종료 날짜</Text>
+              <DatePicker date={endDate} onChange={setEndDate}/>
             </View>
           )}
 
-          {activeTab === '추천' && (
+          {selectedCategory === '추천' && (
             <View style={styles.inputGroup}>
               <Text style={styles.label}>소요 시간</Text>
               <View style={styles.rowBox}>
@@ -68,10 +80,11 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
             </View>
           )}
 
-          {activeTab === '일정' && (
+          {selectedCategory === '일정' && (
             <>
               <View style={styles.inputGroup}>
-                <DatePicker label="종료 날짜" date={endDate} onChange={setEndDate}/>
+                <Text style={styles.label}>날짜</Text>
+                <DatePicker date={endDate} onChange={setEndDate}/>
               </View>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>시간</Text>
@@ -94,19 +107,6 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { padding: 16 },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#000' },
-  input: {
-    width: 180,
-    borderWidth: 2,
-    borderColor: '#EADDFF',
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 12,
-    textAlign: 'center',
-    paddingHorizontal: 4,
-    fontSize: 20,
-  },
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.3)',
@@ -120,31 +120,9 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     minHeight: height * 0.55,
   },
-  tabRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  tabButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#999',
-    marginRight: 8,
-  },
-  activeTab: {
-    backgroundColor: '#7B52AA',
-  },
-  tabText: {
-    color: '#333',
-  },
-  closeButton: {
-    fontSize: 18,
-  },
   inputGroup: {
     marginBottom: 20,
+    paddingHorizontal: 12,
   },
   label: {
     marginBottom: 6,
@@ -155,15 +133,6 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderRadius: 6,
     padding: 10,
-  },
-  dateBox: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 6,
-    padding: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   rowBox: {
     flexDirection: 'row',
@@ -176,6 +145,7 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 4,
     marginRight: 6,
+    textAlign: 'center',
   },
   timeInput: {
     width: 40,
@@ -184,6 +154,46 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 4,
     marginHorizontal: 2,
+    textAlign: 'center',
+  },
+  segmentedContainer: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#B0A4C0',
+    borderRadius: 20,
+    overflow: 'hidden',
+    alignSelf: 'center',
+  },
+  segmentButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    backgroundColor: 'white',
+    borderRightWidth: 1,
+    borderRightColor: '#B0A4C0',
+  },
+  selectedSegment: {
+    backgroundColor: '#E6D9F3',
+  },
+  segmentText: {
+    fontSize: 14,
+    color: 'black',
+  },
+  selectedSegmentText: {
+    fontWeight: 'bold',
+  },
+  leftSegment: {
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
+  },
+  rightSegment: {
+    borderRightWidth: 0,
+    borderTopRightRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
 });
 

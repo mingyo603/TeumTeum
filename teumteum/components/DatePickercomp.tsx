@@ -1,23 +1,21 @@
 // components/date/DatePicker.tsx
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, TextInput } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 
 interface Props {
-  label: string;
   date: Date;
   onChange: (newDate: Date) => void;
 }
 
-const DatePicker: React.FC<Props> = ({ label, date, onChange }) => {
+const DatePicker: React.FC<Props> = ({ date, onChange }) => {
   const [showPicker, setShowPicker] = useState(false);
 
   const formattedDate = `${date.getFullYear()}년 ${String(date.getMonth() + 1).padStart(2, '0')}월 ${String(date.getDate()).padStart(2, '0')}일`;
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
       <Pressable style={styles.inputBox} onPress={() => setShowPicker(true)}>
         <Text style={styles.dateText}>{formattedDate}</Text>
         <Ionicons name="calendar-outline" size={20} color="#000" />
@@ -39,17 +37,22 @@ const DatePicker: React.FC<Props> = ({ label, date, onChange }) => {
 
 const styles = StyleSheet.create({
   container: { marginBottom: 16 },
-  label: { fontSize: 20, fontWeight: 'bold', color: '#000', marginBottom: 4 },
   inputBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#EADDFF',
-    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
     padding: 10,
     justifyContent: 'space-between',
   },
-  dateText: { fontSize: 18 },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    padding: 10,
+  },
+  dateText: { fontSize: 14, color: '#777' },
 });
 
 export default DatePicker;

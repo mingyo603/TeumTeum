@@ -13,14 +13,15 @@ export default function RootLayout() {
   });
 
   if (!loaded) {
-    // Async font loading only occurs in development.
     return null;
   }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack initialRouteName="main">
+        <Stack.Screen name="main" options={{ title: '메인 화면', headerShown: false }} />
+        <Stack.Screen name="Manage" options={{ title: '관리 페이지', headerShown: false }} />
+        <Stack.Screen name="Completed" options={{ title: '완료 페이지', headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
