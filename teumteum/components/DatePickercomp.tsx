@@ -38,7 +38,7 @@ const DatePicker: React.FC<Props> = ({ label, date, onChange }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { marginBottom: 16 },
+  container: { marginBottom: 1 },
   label: { fontSize: 20, fontWeight: 'bold', color: '#000', marginBottom: 4 },
   inputBox: {
     flexDirection: 'row',
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     padding: 10,
     justifyContent: 'space-between',
   },
-  dateText: { fontSize: 18 },
+  dateText: { fontSize: 20 },
 });
 
 export default DatePicker;
