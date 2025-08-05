@@ -36,23 +36,18 @@ const DatePicker: React.FC<Props> = ({ date, onChange }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { marginBottom: 16 },
+  container: { marginBottom: 1 },
+  label: { fontSize: 20, fontWeight: 'bold', color: '#000', marginBottom: 4 },
   inputBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ccc',
+    borderWidth: 2,
+    borderColor: '#EADDFF',
     borderRadius: 6,
     padding: 10,
     justifyContent: 'space-between',
   },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 6,
-    padding: 10,
-  },
-  dateText: { fontSize: 14, color: '#777' },
+  dateText: { fontSize: 20, },
 });
 
 export default DatePicker;

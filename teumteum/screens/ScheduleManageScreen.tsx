@@ -10,8 +10,8 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 export default function ScheduleManageScreen() {
   const [isPopupVisible, setPopupVisible] = useState(false);
 
-  const showPopup = () => setPopupVisible(true);
-  const hidePopup = () => setPopupVisible(false);
+    const showPopup = () => setPopupVisible(true);
+    const hidePopup = () => setPopupVisible(false);
 
   const router = useRouter();
 

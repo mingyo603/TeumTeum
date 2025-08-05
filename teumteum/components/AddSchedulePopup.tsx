@@ -1,3 +1,4 @@
+// AddSchedulePopup.tsx
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -12,9 +13,11 @@ import {
 } from 'react-native';
 import DatePicker from './DatePickercomp';
 import { IconButton } from 'react-native-paper';
+import TimePicker from './TimePickercomp';  // TimePicker 컴포넌트 임포트
 
 interface AddSchedulePopupProps {
   onClose: () => void;
+  date?: Date; // 없어도 무방해서 optional 처리
 }
 
 const { width, height } = Dimensions.get('window');
@@ -26,6 +29,9 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
   const [title, setTitle] = useState('');
   const [endDate, setEndDate] = useState(new Date()); // 종료 날짜 상태
 
+  // ‘일정’ 탭용 시작시간, 종료시간 상태 추가
+  const [Time, setTime] = useState(new Date());
+
   return (
     <Modal transparent visible animationType="fade">
       <TouchableWithoutFeedback onPress={onClose}>
@@ -35,78 +41,83 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
             onStartShouldSetResponder={() => true}  // 팝업 내부는 닫히지 않도록
           >
             {/* 탭 선택 */}
-            <View style={styles.header}>
-              <IconButton icon="arrow-left" size={22} disabled style={{ opacity: 0 }} />
-            <View style={styles.segmentedContainer}>
-              {categories.map((category, index) => (
-                <Pressable
-                  key={index}
-                  style={[
-                    styles.segmentButton,
-                    selectedCategory === category && styles.selectedSegment,
-                    index === 0 ? styles.leftSegment : index === categories.length - 1 ? styles.rightSegment : null,
-                  ]}
-                  onPress={() => setSelectedCategory(category)}
-                >
-                  <Text
+            <View style={styles.tabRow}>
+              <IconButton icon="close" size={24} iconColor="#591A85" onPress={onClose} />
+              <View style={styles.tabGroup}>
+                {['장기', '추천', '일정'].map((tab, idx) => (
+                  <Pressable
+                    key={tab}
                     style={[
-                      styles.segmentText,
-                      selectedCategory === category && styles.selectedSegmentText,
+                      styles.tabButton,
+                      activeTab === tab && styles.activeTab,
+                      idx === 0 && styles.leftTab,
+                      idx === 2 && styles.rightTab,
                     ]}
+                    onPress={() => setActiveTab(tab as typeof activeTab)}
                   >
-                    {category}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            <IconButton icon="close-box" size={22} iconColor="#591A85" onPress={onClose} />
+                    <Text
+                      style={[
+                        styles.tabText,
+                        activeTab === tab && styles.activeTabText,
+                      ]}
+                    >
+                    {tab} 
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <IconButton icon="check" size={24} iconColor="#591A85" onPress={onClose} />
             </View>
 
             {/* 공통 입력 */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>제목</Text>
-              <TextInput placeholder="입력하세요" style={styles.textInput} />
-            </View>
-
-            {/* 탭 별 입력 */}
-            {selectedCategory === '장기' && (
+            <View>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>종료 날짜</Text>
-                <DatePicker date={endDate} onChange={setEndDate}/>
+                <Text style={styles.label}>제목</Text>
+                <TextInput
+                  placeholder="입력하세요"
+                  style={styles.textInput}
+                  value={title}
+                  onChangeText={setTitle}
+                />
               </View>
-            )}
 
-            {selectedCategory === '추천' && (
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>소요 시간</Text>
-                <View style={styles.rowBox}>
-                  <TextInput style={styles.durationInput} placeholder="00" />
-                  <Text>분</Text>
-                </View>
-              </View>
-            )}
-
-            {selectedCategory === '일정' && (
-              <>
-                <View style={styles.inputGroup}>
+              {/* 탭 별 입력 */}
+              {activeTab === '장기' && (
+                <>
+                  <View style={styles.inputGroup}>
                   <Text style={styles.label}>날짜</Text>
-                  <DatePicker date={endDate} onChange={setEndDate}/>
-                </View>
+                    <DatePicker date={endDate} onChange={setEndDate} />
+                  </View>
+                </>
+              )}
+
+              {activeTab === '추천' && (
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>시간</Text>
+                  <Text style={styles.label}>소요 시간</Text>
                   <View style={styles.rowBox}>
-                    <TextInput style={styles.timeInput} placeholder="00" />
-                    <Text>:</Text>
-                    <TextInput style={styles.timeInput} placeholder="00" />
-                    <Text> ~ </Text>
-                    <TextInput style={styles.timeInput} placeholder="00" />
-                    <Text>:</Text>
-                    <TextInput style={styles.timeInput} placeholder="00" />
+                    <TextInput
+                      style={styles.durationInput}
+                      placeholder="00"
+                      keyboardType="number-pad"
+                    />
+                    <Text style={styles.text}>분</Text>
                   </View>
                 </View>
-              </>
-            )}
-          </View>
+              )}
+
+              {activeTab === '일정' && (
+                <>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>날짜</Text>
+                    <DatePicker date={endDate} onChange={setEndDate}/>
+                  </View>
+                  <View style={styles.inputGroup}>
+                    <TimePicker label="시간" time={Time} onChange={setTime} />
+                  </View>
+                </>
+              )}
+              </View>
+            </View>
         </View>
       </TouchableWithoutFeedback>
     </Modal>
@@ -127,6 +138,46 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     minHeight: height * 0.55,
   },
+  tabRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  tabGroup: {
+    flexDirection: 'row',
+    backgroundColor: '#f0e9fa',
+    borderRadius: 20,
+    overflow: 'hidden',
+    flex: 1,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderColor: '#7B52AA',
+    borderWidth: 1,
+    borderLeftWidth: 0,
+  },
+  leftTab: {
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
+    borderLeftWidth: 1,
+  },
+  rightTab: {
+    borderTopRightRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  activeTab: {
+    backgroundColor: '#7B52AA',
+  },
+  tabText: {
+    color: '#000',
+    fontWeight: 'bold',
+  },
+  activeTabText: {
+    color: '#fff',
+  },
   inputGroup: {
     marginBottom: 20,
     paddingHorizontal: 12,
@@ -134,74 +185,40 @@ const styles = StyleSheet.create({
   label: {
     marginBottom: 6,
     fontWeight: 'bold',
+    fontSize: 20,
+    color: '#000',
+    paddingHorizontal: 4
   },
   textInput: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#EADDFF',
+    borderRadius: 8,
     padding: 10,
+    justifyContent: 'space-between',
+    fontSize: 20,
   },
   rowBox: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   durationInput: {
-    width: 50,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 8,
-    borderRadius: 4,
-    marginRight: 6,
-    textAlign: 'center',
-  },
-  timeInput: {
-    width: 40,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 6,
-    borderRadius: 4,
-    marginHorizontal: 2,
-    textAlign: 'center',
-  },
-  segmentedContainer: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: '#B0A4C0',
-    borderRadius: 20,
-    overflow: 'hidden',
-    alignSelf: 'center',
-  },
-  segmentButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    backgroundColor: 'white',
-    borderRightWidth: 1,
-    borderRightColor: '#B0A4C0',
-  },
-  selectedSegment: {
-    backgroundColor: '#E6D9F3',
-  },
-  segmentText: {
-    fontSize: 14,
-    color: 'black',
-  },
-  selectedSegmentText: {
-    fontWeight: 'bold',
-  },
-  leftSegment: {
-    borderTopLeftRadius: 20,
-    borderBottomLeftRadius: 20,
-  },
-  rightSegment: {
-    borderRightWidth: 0,
-    borderTopRightRadius: 20,
-    borderBottomRightRadius: 20,
-  },
-  header: {
-    flexDirection: 'row',
+    borderWidth: 2,
+    borderColor: '#EADDFF',
+    borderRadius: 8,
+    padding: 10,
     justifyContent: 'space-between',
-    alignItems: 'center',
+    fontSize: 20,
   },
+  text: {
+    fontSize: 20,
+    color: '#000',
+    paddingHorizontal: 4, 
+    padding: 10,
+    justifyContent: 'space-between',
+    paddingTop: 5, 
+  }
 });
 
 export default AddSchedulePopup;
