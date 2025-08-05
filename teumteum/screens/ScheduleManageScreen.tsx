@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import ScheduleItem from '../components/ScheduleItem';
 import { IconButton } from 'react-native-paper';
@@ -6,8 +6,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AddSchedulePopup from '@/components/AddSchedulePopup'; // 또는 상대경로
 import { useRouter } from 'expo-router';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import DebugDB from '@/components/DebugDB';  // 경로는 실제 위치에 맞게
+import { cleanUpOldSchedules } from '@/utils/scheduleUtils'
 
 export default function ScheduleManageScreen() {
+  useEffect(() => {
+    cleanUpOldSchedules();
+  }, []); // 빈 배열: 컴포넌트 마운트 시 1회 실행
+
   const [isPopupVisible, setPopupVisible] = useState(false);
 
     const showPopup = () => setPopupVisible(true);
@@ -86,6 +92,7 @@ export default function ScheduleManageScreen() {
       </View>
 
       {isPopupVisible && <AddSchedulePopup onClose={hidePopup} />}
+      <DebugDB />
     </SafeAreaView>
   );
 }

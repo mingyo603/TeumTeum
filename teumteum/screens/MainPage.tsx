@@ -15,6 +15,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useRouter } from 'expo-router';
+import { cleanUpOldSchedules } from '@/utils/scheduleUtils'
 
 const PURPLE = "#7B52AA";
 const LIGHT_PURPLE = "#A580C0";
@@ -41,6 +42,10 @@ const getTodayString = (): string => {
 };
 
 export default function ScheduleScreen() {
+  useEffect(() => {
+    cleanUpOldSchedules();
+  }, []); // 빈 배열: 컴포넌트 마운트 시 1회 실행
+  
   const [selectedDate, setSelectedDate] = useState<string>(getTodayString());
   const [visibleSchedule, setVisibleSchedule] = useState<ScheduleItem[]>([]);
   const [isDatePickerVisible, setDatePickerVisibility] = useState<boolean>(false);

@@ -9,11 +9,14 @@ import {
   StyleSheet,
   Modal,
   Dimensions,
-  TouchableWithoutFeedback, 
+  TouchableWithoutFeedback,
+  Alert,
 } from 'react-native';
 import DatePicker from './DatePickercomp';
 import { IconButton } from 'react-native-paper';
 import TimePicker from './TimePickercomp';  // TimePicker 컴포넌트 임포트
+import { addLongTermTask, addRecommendedTask, addDailySchedule } from '../storage/scheduleStorage';
+import DebugDB from '@/components/DebugDB';  // 경로는 실제 위치에 맞게
 
 interface AddSchedulePopupProps {
   onClose: () => void;
@@ -23,14 +26,56 @@ interface AddSchedulePopupProps {
 const { width, height } = Dimensions.get('window');
 
 const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
-  const categories = ['장기', '추천', '일정'];
-  const [selectedCategory, setSelectedCategory] = useState('장기');
   const [activeTab, setActiveTab] = useState<'장기' | '추천' | '일정'>('장기');
   const [title, setTitle] = useState('');
   const [endDate, setEndDate] = useState(new Date()); // 종료 날짜 상태
 
+  // ‘추천’ 탭용 소요 시간 상태 추가
+  const [duration, setDuration] = useState('');
+
   // ‘일정’ 탭용 시작시간, 종료시간 상태 추가
-  const [Time, setTime] = useState(new Date());
+  const [StartTime, setStartTime] = useState(new Date());
+  const [EndTime, setEndTime] = useState(new Date());
+
+  // 저장 버튼 눌렀을 때 실행할 함수
+  const handleSave = async () => {
+    if (!title.trim()) {
+      Alert.alert('알림', '제목을 입력해주세요.');
+      return;
+    }
+
+    try {
+      if (activeTab === '장기') {
+        await addLongTermTask(title.trim(), endDate);
+      } else if (activeTab === '추천') {
+        const durationNumber = parseInt(duration, 10);
+        if (isNaN(durationNumber) || durationNumber <= 0) {
+          Alert.alert('알림', '소요 시간을 올바르게 입력해주세요.');
+          return;
+        }
+        await addRecommendedTask(title.trim(), durationNumber);
+      } else if (activeTab === '일정') {
+        // 종료 시간이 시작 시간보다 앞서면 경고
+        if (EndTime < StartTime) {
+          Alert.alert('알림', '종료 시간이 시작 시간보다 빨라요. 다시 설정해주세요.');
+          return;
+        }
+        const StartString = StartTime.toTimeString().slice(0, 5); // HH:mm
+        const EndString = EndTime.toTimeString().slice(0, 5); // HH:mm
+        await addDailySchedule(
+          title.trim(),
+          endDate,
+          StartString,   // 예: "12:00"
+          EndString,      // 예: "13:00"
+        );
+      }
+
+      onClose();  // 저장 후 팝업 닫기
+    } catch (error) {
+      console.error(error);
+      Alert.alert('오류', '일정 저장 중 오류가 발생했습니다.');
+    }
+  };
 
   return (
     <Modal transparent visible animationType="fade">
@@ -61,12 +106,12 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
                         activeTab === tab && styles.activeTabText,
                       ]}
                     >
-                    {tab} 
+                      {tab}
                     </Text>
                   </Pressable>
                 ))}
               </View>
-              <IconButton icon="check" size={24} iconColor="#591A85" onPress={onClose} />
+              <IconButton icon="check" size={24} iconColor="#591A85" onPress={handleSave} />
             </View>
 
             {/* 공통 입력 */}
@@ -83,12 +128,10 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
 
               {/* 탭 별 입력 */}
               {activeTab === '장기' && (
-                <>
-                  <View style={styles.inputGroup}>
+                <View style={styles.inputGroup}>
                   <Text style={styles.label}>날짜</Text>
-                    <DatePicker date={endDate} onChange={setEndDate} />
-                  </View>
-                </>
+                  <DatePicker date={endDate} onChange={setEndDate} />
+                </View>
               )}
 
               {activeTab === '추천' && (
@@ -99,8 +142,10 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
                       style={styles.durationInput}
                       placeholder="00"
                       keyboardType="number-pad"
+                      value={duration}
+                      onChangeText={setDuration}
                     />
-                    <Text style={styles.text}>분</Text>
+                    <Text style={styles.durationText}>분</Text>
                   </View>
                 </View>
               )}
@@ -109,17 +154,23 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
                 <>
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>날짜</Text>
-                    <DatePicker date={endDate} onChange={setEndDate}/>
+                    <DatePicker date={endDate} onChange={setEndDate} />
                   </View>
                   <View style={styles.inputGroup}>
-                    <TimePicker label="시간" time={Time} onChange={setTime} />
+                    <Text style={styles.label}>시간</Text>
+                    <View style={styles.TimeGroup}>
+                      <TimePicker time={StartTime} onChange={setStartTime} />
+                      <Text style={styles.TimeText}> ~ </Text>
+                      <TimePicker time={EndTime} onChange={setEndTime} />
+                    </View>
                   </View>
                 </>
               )}
-              </View>
             </View>
+          </View>
         </View>
       </TouchableWithoutFeedback>
+      <DebugDB />
     </Modal>
   );
 };
@@ -172,7 +223,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#7B52AA',
   },
   tabText: {
-    color: '#000',
     fontWeight: 'bold',
   },
   activeTabText: {
@@ -186,8 +236,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     fontWeight: 'bold',
     fontSize: 20,
-    color: '#000',
-    paddingHorizontal: 4
+    paddingHorizontal: 4,
   },
   textInput: {
     flexDirection: 'row',
@@ -211,14 +260,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     fontSize: 20,
   },
-  text: {
+  durationText: {
     fontSize: 20,
-    color: '#000',
-    paddingHorizontal: 4, 
+    paddingHorizontal: 4,
     padding: 10,
     justifyContent: 'space-between',
-    paddingTop: 5, 
-  }
+    paddingTop: 5,
+  },
+  TimeGroup: {
+    flexDirection: 'row',
+  },
+  TimePicker: {},
+  TimeText: {
+    fontSize: 20,
+    paddingHorizontal: 4,
+    padding: 10,
+    justifyContent: 'space-between',
+    paddingTop: 10,
+  },
 });
 
 export default AddSchedulePopup;
