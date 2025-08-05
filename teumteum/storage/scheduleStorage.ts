@@ -96,8 +96,8 @@ export async function addDailySchedule(title: string, date: Date, startTime: str
     date,
     startTime,
     endTime,
-    isCompleted: true,
-    completedDate: completedDate, // 완료 날짜는 아직 없으니 undefined로 설정
+    isCompleted: false,
+    completedDate: undefined, // 완료 날짜는 아직 없으니 undefined로 설정
   };
   db.dailySchedules.push(newSchedule);
   await setDB(db);
