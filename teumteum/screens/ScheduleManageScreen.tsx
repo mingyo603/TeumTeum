@@ -74,8 +74,8 @@ export default function ScheduleManageScreen() {
                 {category} 일정
               </Text>
             )}
-            {items.map((item) => (
-              <ScheduleItem label={item} />
+            {items.map((item, index) => (
+              <ScheduleItem key={`${item}-${index}`} label={item} />
             ))}
           </View>
         ))}

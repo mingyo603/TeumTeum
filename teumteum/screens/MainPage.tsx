@@ -40,7 +40,7 @@ const getTodayString = (): string => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
-export default function ScheduleScreen({checked_color = 'white' }: ScheduleItem) {
+export default function ScheduleScreen() {
   const [selectedDate, setSelectedDate] = useState<string>(getTodayString());
   const [visibleSchedule, setVisibleSchedule] = useState<ScheduleItem[]>([]);
   const [isDatePickerVisible, setDatePickerVisibility] = useState<boolean>(false);
