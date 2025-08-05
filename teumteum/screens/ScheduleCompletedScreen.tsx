@@ -24,8 +24,8 @@ export default function ScheduleCompletedScreen() {
         {Object.entries(scheduleData).map(([category, items]) => (
           <View key={category}>
             <Text style={styles.sectionTitle} key={category}>{category} 일정</Text>
-            {items.map((item) => (
-              <ScheduleItem label={item} />
+            {items.map((item, index) => (
+              <ScheduleItem key={`${item}-${index}`} label={item} />
             ))}
           </View>
         ))}
