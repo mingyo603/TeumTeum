@@ -6,7 +6,7 @@ export const STORAGE_KEY = '@teumteum_schedule_db';
 export interface LongTermTask {
   id: string;
   title: string;
-  dueDate: Date;
+  dueDate: string;
   isCompleted: boolean;
 }
 
@@ -20,11 +20,11 @@ export interface RecommendedTask {
 export interface DailySchedule {
   id: string;
   title: string;
-  date: Date;
+  date: string;
   startTime: string;         // HH:mm
   endTime: string;         // HH:mm
   isCompleted: boolean;
-  completedDate?: Date; // ISO 문자열로 완료 날짜 저장, 완료 시점에 기록
+  completedDate?: string; // ISO 문자열로 완료 날짜 저장, 완료 시점에 기록
 }
 
 export interface TaskDB {
@@ -59,7 +59,7 @@ export async function setDB(db: TaskDB) {
 }
 
 // 장기 일정 추가 함수
-export async function addLongTermTask(title: string, dueDate: Date) {
+export async function addLongTermTask(title: string, dueDate: string) {
   const db = (await getDB()) || { longTermTasks: [], recommendedTasks: [], dailySchedules: [] };
   const newTask: LongTermTask = {
     id: uuidv4(),
@@ -87,17 +87,16 @@ export async function addRecommendedTask(title: string, duration: number) {
 }
 
 // 일일 일정 추가 함수
-export async function addDailySchedule(title: string, date: Date, startTime: string, endTime: string) {
+export async function addDailySchedule(title: string, date: string, startTime: string, endTime: string) {
   const db = (await getDB()) || { longTermTasks: [], recommendedTasks: [], dailySchedules: [] };
-  const completedDate = new Date("2025-06-02");
   const newSchedule: DailySchedule = {
     id: uuidv4(),
     title,
     date,
     startTime,
     endTime,
-    isCompleted: true,
-    completedDate: completedDate, // 완료 날짜는 아직 없으니 undefined로 설정
+    isCompleted: false,
+    completedDate: undefined, // 완료 날짜는 아직 없으니 undefined로 설정
   };
   db.dailySchedules.push(newSchedule);
   await setDB(db);
@@ -112,4 +111,46 @@ export async function resetDB() {
   };
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(initialDB));
   console.log('⚡ DB 완전 초기화 완료');
+}
+
+
+export async function toggleLongTermTaskCompleted(id: string) {
+  const db = (await getDB()) || { longTermTasks: [], recommendedTasks: [], dailySchedules: [] };
+  
+  db.longTermTasks = db.longTermTasks.map(task =>
+    task.id === id ? { ...task, isCompleted: !task.isCompleted } : task
+  );
+
+  await setDB(db);
+  return db.longTermTasks.find(task => task.id === id);
+}
+
+export async function toggleRecommendedTaskCompleted(id: string) {
+  const db = (await getDB()) || { longTermTasks: [], recommendedTasks: [], dailySchedules: [] };
+
+  db.recommendedTasks = db.recommendedTasks.map(task =>
+    task.id === id ? { ...task, isCompleted: !task.isCompleted } : task
+  );
+
+  await setDB(db);
+  return db.recommendedTasks.find(task => task.id === id);
+}
+
+export async function toggleDailyScheduleCompleted(id: string) {
+  const db = (await getDB()) || { longTermTasks: [], recommendedTasks: [], dailySchedules: [] };
+
+  db.dailySchedules = db.dailySchedules.map(schedule => {
+    if (schedule.id === id) {
+      const newStatus = !schedule.isCompleted;
+      return {
+        ...schedule,
+        isCompleted: newStatus,
+        completedDate: newStatus ? new Date().toISOString() : undefined,
+      };
+    }
+    return schedule;
+  });
+
+  await setDB(db);
+  return db.dailySchedules.find(schedule => schedule.id === id);
 }

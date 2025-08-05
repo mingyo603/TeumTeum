@@ -8,12 +8,21 @@ import { useRouter } from 'expo-router';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import DebugDB from '@/components/DebugDB';  // 경로는 실제 위치에 맞게
 import { cleanUpOldSchedules } from '@/utils/scheduleUtils'
+import { getDB, TaskDB, LongTermTask, RecommendedTask, DailySchedule } from '../storage/scheduleStorage';
 
 export default function ScheduleManageScreen() {
   useEffect(() => {
     cleanUpOldSchedules();
-  }, []); // 빈 배열: 컴포넌트 마운트 시 1회 실행
 
+  }, []); 
+  // 빈 배열: 컴포넌트 마운트 시 1회 실행
+  useEffect(() => {
+    (async () => {
+      const db = await getDB();
+      setTaskDB(db);
+    })();
+  }, []);
+  
   const [isPopupVisible, setPopupVisible] = useState(false);
 
     const showPopup = () => setPopupVisible(true);
@@ -21,15 +30,9 @@ export default function ScheduleManageScreen() {
 
   const router = useRouter();
 
-  const getTodayString = (): string => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, "0");
-    const dd = String(today.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  };
   const [isDatePickerVisible, setDatePickerVisibility] = useState<boolean>(false);
-  const [selectedDate, setSelectedDate] = useState<string>(getTodayString());
+  
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // "YYYY-MM-DD" 형식
   const handleConfirm = (date: Date) => {
     const yyyy = date.getFullYear();
     const mm = String(date.getMonth() + 1).padStart(2, "0");
@@ -38,11 +41,17 @@ export default function ScheduleManageScreen() {
     setDatePickerVisibility(false);
   };
 
-  const scheduleData = {
-    장기: ['SW 대회', '운전면허', '컴활 자격증'],
-    추천: ['영단어 암기', '자격증 공부', '스트레칭'],
-    일일: ['친구 약속', '병원 예약', '수영 강습'],
-  };
+  const [taskDB, setTaskDB] = useState<TaskDB | null>(null);
+  
+  if (!taskDB) return null;
+
+  const { longTermTasks, recommendedTasks, dailySchedules } = taskDB;
+
+  const filteredLongTerm = longTermTasks.filter((task: LongTermTask) => !task.isCompleted);
+  const filteredRecommended = recommendedTasks.filter((task: RecommendedTask) => !task.isCompleted);
+  const filteredDaily = dailySchedules.filter(
+    (task: DailySchedule) => !task.isCompleted && task.date.slice(0, 10) === selectedDate
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -52,39 +61,41 @@ export default function ScheduleManageScreen() {
         <IconButton icon="trash-can-outline" size={22} onPress={() => router.push('/Completed')} />
       </View>
       <ScrollView contentContainerStyle={styles.container}>
-        {Object.entries(scheduleData).map(([category, items]) => (
-          <View key={category}>
-            {category === '일일' ? (
-              <>
-                <Pressable onPress={() => setDatePickerVisibility(true)}>
-                  <Text style={styles.sectionTitle}>
-                    일일 일정{' '}
-                      <Text style={styles.dateText}>
-                        {new Date().toLocaleDateString('ko-KR', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                        }).replace(/\.\s/g, '.').replace(/\.$/, '')}
-                      </Text>
-                  </Text>
-                </Pressable>
-                <DateTimePickerModal
-                  isVisible={isDatePickerVisible}
-                  mode="date"
-                  onConfirm={handleConfirm}
-                  onCancel={() => setDatePickerVisibility(false)}
-                />
-              </>
-            ) : (
-              <Text style={styles.sectionTitle}>
-                {category} 일정
+        <View>
+          <Text style={styles.sectionTitle}>장기 일정</Text>
+          {filteredLongTerm.map(task => (
+            <ScheduleItem key={task.id} id={task.id} label={task.title} type='장기' isCompleted={false} />
+          ))}
+        </View>
+        <View>
+          <Text style={styles.sectionTitle}>추천 일정</Text>
+          {filteredRecommended.map(task => (
+            <ScheduleItem key={task.id} id={task.id} label={task.title} type='추천' isCompleted={false} />
+          ))}
+        </View>
+        <View>
+          <Pressable onPress={() => setDatePickerVisibility(true)}>
+            <Text style={styles.sectionTitle}>
+              일일 일정{' '}
+              <Text style={styles.dateText}>
+                {new Date(selectedDate).toLocaleDateString('ko-KR', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                }).replace(/\.\s/g, '.').replace(/\.$/, '')}
               </Text>
-            )}
-            {items.map((item, index) => (
-              <ScheduleItem key={`${item}-${index}`} label={item} />
-            ))}
-          </View>
-        ))}
+            </Text>
+          </Pressable>
+          <DateTimePickerModal
+            isVisible={isDatePickerVisible}
+            mode="date"
+            onConfirm={handleConfirm}
+            onCancel={() => setDatePickerVisibility(false)}
+          />
+          {filteredDaily.map(task => (
+            <ScheduleItem id={task.id} label={task.title} type='일일' isCompleted={false} />
+          ))}
+        </View>
       </ScrollView>
       
       <View style={styles.fabContainer}>

@@ -20,7 +20,7 @@ import DebugDB from '@/components/DebugDB';  // 경로는 실제 위치에 맞�
 
 interface AddSchedulePopupProps {
   onClose: () => void;
-  date?: Date; // 없어도 무방해서 optional 처리
+  date?: string; // 없어도 무방해서 optional 처리
 }
 
 const { width, height } = Dimensions.get('window');
@@ -46,7 +46,7 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
 
     try {
       if (activeTab === '장기') {
-        await addLongTermTask(title.trim(), endDate);
+        await addLongTermTask(title.trim(), endDate.toISOString().split('T')[0]); // "YYYY-MM-DD" 형식
       } else if (activeTab === '추천') {
         const durationNumber = parseInt(duration, 10);
         if (isNaN(durationNumber) || durationNumber <= 0) {
@@ -64,7 +64,7 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
         const EndString = EndTime.toTimeString().slice(0, 5); // HH:mm
         await addDailySchedule(
           title.trim(),
-          endDate,
+          endDate.toISOString().split('T')[0], // "YYYY-MM-DD" 형식
           StartString,   // 예: "12:00"
           EndString,      // 예: "13:00"
         );
