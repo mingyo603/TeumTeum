@@ -15,27 +15,47 @@ import {
 import DatePicker from './DatePickercomp';
 import { IconButton } from 'react-native-paper';
 import TimePicker from './TimePickercomp';  // TimePicker 컴포넌트 임포트
-import { addLongTermTask, addRecommendedTask, addDailySchedule } from '../storage/scheduleStorage';
+import { 
+  addLongTermTask, 
+  addRecommendedTask, 
+  addDailySchedule, 
+  updateLongTermTask, 
+  updateRecommendedTask, 
+  updateDailySchedule, 
+  deleteTaskByType, 
+} from '../storage/scheduleStorage';
 import DebugDB from '@/components/DebugDB';  // 경로는 실제 위치에 맞게
 
 interface AddSchedulePopupProps {
   onClose: () => void;
-  date?: string; // 없어도 무방해서 optional 처리
+  onSave: () => void;
+  date?: string; // 기존 유지
+  initialTab?: '장기' | '추천' | '일정'; // ✅ 추가: 초기 탭
+  initialValues?: {
+    id?: string; // ✅ 추가
+    title?: string;
+    endDate?: Date;
+    duration?: string;
+    startTime?: Date;
+    endTime?: Date;
+    dueDate?: Date;
+  }; // ✅ 추가: 초기값
 }
 
 const { width, height } = Dimensions.get('window');
 
-const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
-  const [activeTab, setActiveTab] = useState<'장기' | '추천' | '일정'>('장기');
-  const [title, setTitle] = useState('');
-  const [endDate, setEndDate] = useState(new Date()); // 종료 날짜 상태
-
-  // ‘추천’ 탭용 소요 시간 상태 추가
-  const [duration, setDuration] = useState('');
-
-  // ‘일정’ 탭용 시작시간, 종료시간 상태 추가
-  const [StartTime, setStartTime] = useState(new Date());
-  const [EndTime, setEndTime] = useState(new Date());
+const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({
+  onClose, onSave, 
+  initialTab = '장기', // ✅ 기본값 지정
+  initialValues = {},   // ✅ 기본값 지정
+}) => {
+  // ✅ 초기값 사용하여 상태 설정
+  const [activeTab, setActiveTab] = useState<'장기' | '추천' | '일정'>(initialTab);
+  const [title, setTitle] = useState(initialValues.title ?? '');
+  const [endDate, setEndDate] = useState(initialValues.endDate ?? new Date());
+  const [duration, setDuration] = useState(initialValues.duration ?? '');
+  const [StartTime, setStartTime] = useState(initialValues.startTime ?? new Date());
+  const [EndTime, setEndTime] = useState(initialValues.endTime ?? new Date());
 
   // 저장 버튼 눌렀을 때 실행할 함수
   const handleSave = async () => {
@@ -46,14 +66,26 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
 
     try {
       if (activeTab === '장기') {
-        await addLongTermTask(title.trim(), endDate.toISOString().split('T')[0]); // "YYYY-MM-DD" 형식
+        if (initialValues.id) {
+          // ✅ 수정 모드
+          await updateLongTermTask(initialValues.id, title.trim(), endDate.toISOString().split('T')[0]);
+        } else {
+          // ✅ 추가 모드
+          await addLongTermTask(title.trim(), endDate.toISOString().split('T')[0]); // "YYYY-MM-DD" 형식
+        }
       } else if (activeTab === '추천') {
         const durationNumber = parseInt(duration, 10);
         if (isNaN(durationNumber) || durationNumber <= 0) {
           Alert.alert('알림', '소요 시간을 올바르게 입력해주세요.');
           return;
         }
-        await addRecommendedTask(title.trim(), durationNumber);
+        if (initialValues.id) {
+          // ✅ 수정 모드
+          await updateRecommendedTask(initialValues.id, title.trim(), durationNumber);
+        } else {
+          // ✅ 추가 모드
+          await addRecommendedTask(title.trim(), durationNumber);
+        }
       } else if (activeTab === '일정') {
         // 종료 시간이 시작 시간보다 앞서면 경고
         if (EndTime < StartTime) {
@@ -62,20 +94,65 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
         }
         const StartString = StartTime.toTimeString().slice(0, 5); // HH:mm
         const EndString = EndTime.toTimeString().slice(0, 5); // HH:mm
-        await addDailySchedule(
-          title.trim(),
-          endDate.toISOString().split('T')[0], // "YYYY-MM-DD" 형식
-          StartString,   // 예: "12:00"
-          EndString,      // 예: "13:00"
-        );
+        if (initialValues.id) {
+          // ✅ 수정 모드
+          await updateDailySchedule(
+            initialValues.id, 
+            title.trim(),
+            endDate.toISOString().split('T')[0], // "YYYY-MM-DD" 형식
+            StartString,   // 예: "12:00"
+            EndString,      // 예: "13:00"
+          );
+        } else {
+          // ✅ 추가 모드
+          await addDailySchedule(
+            title.trim(),
+            endDate.toISOString().split('T')[0], // "YYYY-MM-DD" 형식
+            StartString,   // 예: "12:00"
+            EndString,      // 예: "13:00"
+          );
+        }
       }
 
       onClose();  // 저장 후 팝업 닫기
+      await onSave();  // 부모 컴포넌트에 새로고침 요청 (await 붙여서 완료를 기다릴 수도 있음)
     } catch (error) {
       console.error(error);
       Alert.alert('오류', '일정 저장 중 오류가 발생했습니다.');
     }
   };
+
+  const handleDelete = async () => {
+    if (!initialValues.id) return;
+
+    Alert.alert(
+      '삭제 확인',
+      '정말 삭제하시겠어요?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // activeTab 값에 따라 타입 구분 ('장기' | '추천' | '일정')
+              let type: '장기' | '추천' | '일정' = activeTab;
+
+              // storage 함수 import 가정: deleteTaskByType(type, id)
+              await deleteTaskByType(type, initialValues.id);
+
+              onClose(); // 삭제 후 팝업 닫기
+            } catch (error) {
+              console.error(error);
+              Alert.alert('오류', '삭제 중 오류가 발생했습니다.');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
 
   return (
     <Modal transparent visible animationType="fade">
@@ -87,7 +164,11 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
           >
             {/* 탭 선택 */}
             <View style={styles.tabRow}>
-              <IconButton icon="close" size={24} iconColor="#591A85" onPress={onClose} />
+              {initialValues.id ? (
+                <IconButton icon="close" size={24} iconColor="#591A85" onPress={handleDelete} />
+              ) : (
+                <IconButton icon="close" size={24} iconColor="#591A85" onPress={onClose} />
+              )}
               <View style={styles.tabGroup}>
                 {['장기', '추천', '일정'].map((tab, idx) => (
                   <Pressable
@@ -129,8 +210,11 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
               {/* 탭 별 입력 */}
               {activeTab === '장기' && (
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>날짜</Text>
-                  <DatePicker date={endDate} onChange={setEndDate} />
+                  <Text style={styles.label}>종료 날짜</Text>
+                  <DatePicker
+                    date={endDate}
+                    onChange={setEndDate}
+                  />
                 </View>
               )}
 
@@ -154,14 +238,22 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({ onClose }) => {
                 <>
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>날짜</Text>
-                    <DatePicker date={endDate} onChange={setEndDate} />
+                    <DatePicker
+                      date={endDate}
+                      onChange={setEndDate}
+                    />
                   </View>
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>시간</Text>
                     <View style={styles.TimeGroup}>
-                      <TimePicker time={StartTime} onChange={setStartTime} />
+                      <View>
+                        <Text style={styles.label}>시작 시간</Text>
+                        <TimePicker time={StartTime} onChange={setStartTime} />
+                      </View>
                       <Text style={styles.TimeText}> ~ </Text>
-                      <TimePicker time={EndTime} onChange={setEndTime} />
+                      <View>
+                        <Text style={styles.label}>종료 시간</Text>
+                        <TimePicker time={EndTime} onChange={setEndTime} />
+                      </View>
                     </View>
                   </View>
                 </>
@@ -276,7 +368,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     padding: 10,
     justifyContent: 'space-between',
-    paddingTop: 10,
+    paddingTop: 45,
   },
 });
 

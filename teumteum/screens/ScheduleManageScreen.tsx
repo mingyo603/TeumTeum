@@ -1,38 +1,44 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import ScheduleItem from '../components/ScheduleItem';
 import { IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AddSchedulePopup from '@/components/AddSchedulePopup'; // 또는 상대경로
-import { useRouter } from 'expo-router';
+import AddSchedulePopup from '@/components/AddSchedulePopup';
+import { useRouter, useFocusEffect } from 'expo-router';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
-import DebugDB from '@/components/DebugDB';  // 경로는 실제 위치에 맞게
-import { cleanUpOldSchedules } from '@/utils/scheduleUtils'
+import DebugDB from '@/components/DebugDB';
+import { cleanUpOldSchedules } from '@/utils/scheduleUtils';
 import { getDB, TaskDB, LongTermTask, RecommendedTask, DailySchedule } from '../storage/scheduleStorage';
+import emitter from '@/storage/EventEmitter';
 
 export default function ScheduleManageScreen() {
-  useEffect(() => {
-    cleanUpOldSchedules();
-
-  }, []); 
-  // 빈 배열: 컴포넌트 마운트 시 1회 실행
-  useEffect(() => {
-    (async () => {
-      const db = await getDB();
-      setTaskDB(db);
-    })();
-  }, []);
-  
-  const [isPopupVisible, setPopupVisible] = useState(false);
-
-    const showPopup = () => setPopupVisible(true);
-    const hidePopup = () => setPopupVisible(false);
+  const [isPopupVisible, setIsPopupVisible] = useState(false);
+  const [taskDB, setTaskDB] = useState<TaskDB | null>(null);
+  const [isDatePickerVisible, setDatePickerVisibility] = useState<boolean>(false);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   const router = useRouter();
 
-  const [isDatePickerVisible, setDatePickerVisibility] = useState<boolean>(false);
-  
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // "YYYY-MM-DD" 형식
+  const refreshSchedules = async () => {
+    const db = await getDB();
+    if (db) setTaskDB(db);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshSchedules();
+      cleanUpOldSchedules();
+    }, [])
+  );
+
+  useEffect(() => {
+    // 이벤트 구독
+    emitter.on('scheduleChanged', refreshSchedules);
+    return () => {
+      emitter.off('scheduleChanged', refreshSchedules);
+    };
+  }, []);
+
   const handleConfirm = (date: Date) => {
     const yyyy = date.getFullYear();
     const mm = String(date.getMonth() + 1).padStart(2, "0");
@@ -41,11 +47,12 @@ export default function ScheduleManageScreen() {
     setDatePickerVisibility(false);
   };
 
-  const [taskDB, setTaskDB] = useState<TaskDB | null>(null);
-  
+  const showPopup = () => setIsPopupVisible(true);
+  const hidePopup = () => setIsPopupVisible(false);
+
   if (!taskDB) return null;
 
-  const { longTermTasks, recommendedTasks, dailySchedules } = taskDB;
+  const { longTermTasks = [], recommendedTasks = [], dailySchedules = [] } = taskDB;
 
   const filteredLongTerm = longTermTasks.filter((task: LongTermTask) => !task.isCompleted);
   const filteredRecommended = recommendedTasks.filter((task: RecommendedTask) => !task.isCompleted);
@@ -58,19 +65,33 @@ export default function ScheduleManageScreen() {
       <View style={styles.header}>
         <IconButton icon="arrow-left" size={22} onPress={() => router.back()} />
         <Text style={styles.title}>일정 관리</Text>
-        <IconButton icon="trash-can-outline" size={22} onPress={() => router.push('/Completed')} />
+        <IconButton icon="check-all" size={22} onPress={() => router.push('/Completed')} />
       </View>
       <ScrollView contentContainerStyle={styles.container}>
         <View>
           <Text style={styles.sectionTitle}>장기 일정</Text>
           {filteredLongTerm.map(task => (
-            <ScheduleItem key={task.id} id={task.id} label={task.title} type='장기' isCompleted={false} />
+            <ScheduleItem
+              key={task.id}
+              id={task.id}
+              label={task.title}
+              dueDate={task.dueDate}
+              type='장기'
+              isCompleted={false}
+            />
           ))}
         </View>
         <View>
           <Text style={styles.sectionTitle}>추천 일정</Text>
           {filteredRecommended.map(task => (
-            <ScheduleItem key={task.id} id={task.id} label={task.title} type='추천' isCompleted={false} />
+            <ScheduleItem
+              key={task.id}
+              id={task.id}
+              label={task.title}
+              duration={task.duration}
+              type='추천'
+              isCompleted={false}
+            />
           ))}
         </View>
         <View>
@@ -93,16 +114,33 @@ export default function ScheduleManageScreen() {
             onCancel={() => setDatePickerVisibility(false)}
           />
           {filteredDaily.map(task => (
-            <ScheduleItem id={task.id} label={task.title} type='일일' isCompleted={false} />
+            <ScheduleItem
+              key={task.id}
+              id={task.id}
+              label={task.title}
+              date={task.date}
+              startTime={task.startTime}
+              endTime={task.endTime}
+              type='일정'
+              isCompleted={false}
+            />
           ))}
         </View>
       </ScrollView>
-      
+
       <View style={styles.fabContainer}>
-        <IconButton icon="plus" size={40} iconColor="#591A85" style={styles.fab} onPress={showPopup}/>
+        <IconButton icon="plus" size={40} iconColor="#591A85" style={styles.fab} onPress={showPopup} />
       </View>
 
-      {isPopupVisible && <AddSchedulePopup onClose={hidePopup} />}
+      {isPopupVisible && (
+        <AddSchedulePopup
+          onClose={hidePopup}
+          onSave={async () => {
+            await refreshSchedules();
+          }}
+        />
+      )}
+
       <DebugDB />
     </SafeAreaView>
   );

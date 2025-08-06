@@ -154,3 +154,72 @@ export async function toggleDailyScheduleCompleted(id: string) {
   await setDB(db);
   return db.dailySchedules.find(schedule => schedule.id === id);
 }
+
+export async function updateLongTermTask(id: string, newTitle: string, newDueDate: string) {
+  const db = (await getDB()) || { longTermTasks: [], recommendedTasks: [], dailySchedules: [] };
+
+  db.longTermTasks = db.longTermTasks.map(task =>
+    task.id === id ? { ...task, title: newTitle, dueDate: newDueDate } : task
+  );
+
+  await setDB(db);
+  return db.longTermTasks.find(task => task.id === id);
+}
+
+export async function updateRecommendedTask(id: string, newTitle: string, newDuration: number) {
+  const db = (await getDB()) || { longTermTasks: [], recommendedTasks: [], dailySchedules: [] };
+
+  db.recommendedTasks = db.recommendedTasks.map(task =>
+    task.id === id ? { ...task, title: newTitle, duration: newDuration } : task
+  );
+
+  await setDB(db);
+  return db.recommendedTasks.find(task => task.id === id);
+}
+
+export async function updateDailySchedule(
+  id: string,
+  newTitle: string,
+  newDate: string,
+  newStartTime: string,
+  newEndTime: string
+) {
+  const db = (await getDB()) || { longTermTasks: [], recommendedTasks: [], dailySchedules: [] };
+
+  db.dailySchedules = db.dailySchedules.map(schedule =>
+    schedule.id === id
+      ? {
+          ...schedule,
+          title: newTitle,
+          date: newDate,
+          startTime: newStartTime,
+          endTime: newEndTime,
+        }
+      : schedule
+  );
+
+  await setDB(db);
+  return db.dailySchedules.find(schedule => schedule.id === id);
+}
+
+type TaskType = '장기' | '추천' | '일정';
+
+export async function deleteTaskByType(type: TaskType, id: string) {
+  const db = (await getDB()) || { longTermTasks: [], recommendedTasks: [], dailySchedules: [] };
+
+  switch (type) {
+    case '장기':
+      db.longTermTasks = db.longTermTasks.filter(task => task.id !== id);
+      break;
+    case '추천':
+      db.recommendedTasks = db.recommendedTasks.filter(task => task.id !== id);
+      break;
+    case '일정':
+      db.dailySchedules = db.dailySchedules.filter(schedule => schedule.id !== id);
+      break;
+    default:
+      throw new Error(`Unknown task type: ${type}`);
+  }
+
+  await setDB(db);
+}
