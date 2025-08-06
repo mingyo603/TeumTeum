@@ -1,6 +1,6 @@
 import { getDB, setDB, TaskDB } from '@/storage/scheduleStorage';
 
-export function removeOldCompletedSchedules(schedules: TaskDB['dailySchedules']) {
+export function removeOldCompletedSchedules(schedules: TaskDB['DailyTasks']) {
   const now = new Date();
 
   return schedules.filter(schedule => {
@@ -22,10 +22,10 @@ export async function cleanUpOldSchedules() {
     const db = await getDB();
     if (!db) return;
 
-    const filteredSchedules = removeOldCompletedSchedules(db.dailySchedules);
+    const filteredSchedules = removeOldCompletedSchedules(db.DailyTasks);
 
-    if (filteredSchedules.length !== db.dailySchedules.length) {
-      db.dailySchedules = filteredSchedules;
+    if (filteredSchedules.length !== db.DailyTasks.length) {
+      db.DailyTasks = filteredSchedules;
       await setDB(db);
     } else {
     }

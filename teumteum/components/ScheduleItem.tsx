@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, Text, StyleSheet, View } from 'react-native';
 import { Checkbox, IconButton } from 'react-native-paper';
-import { toggleLongTermTaskCompleted, toggleRecommendedTaskCompleted, toggleDailyScheduleCompleted } from '@/storage/scheduleStorage';
+import { toggleCompleted } from '@/storage/scheduleStorage';
 import AddSchedulePopup from '@/components/AddSchedulePopup';
 import emitter from '@/storage/EventEmitter';  // 경로 맞춰서 import
 
@@ -37,17 +37,7 @@ export default function ScheduleItem({
 
   const handleToggle = async () => {
     let updatedTask;
-    switch (type) {
-      case '장기':
-        updatedTask = await toggleLongTermTaskCompleted(id);
-        break;
-      case '추천':
-        updatedTask = await toggleRecommendedTaskCompleted(id);
-        break;
-      case '일정':
-        updatedTask = await toggleDailyScheduleCompleted(id);
-        break;
-    }
+    updatedTask = await toggleCompleted(type, id);
     if (updatedTask) {
       setChecked(updatedTask.isCompleted);
       // 변경 발생 알림 이벤트 발행

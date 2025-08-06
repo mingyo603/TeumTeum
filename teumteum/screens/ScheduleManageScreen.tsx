@@ -7,7 +7,7 @@ import AddSchedulePopup from '@/components/AddSchedulePopup';
 import { useRouter, useFocusEffect } from 'expo-router';
 import DebugDB from '@/components/DebugDB';
 import { cleanUpOldSchedules } from '@/utils/scheduleUtils';
-import { getDB, TaskDB, LongTermTask, RecommendedTask, DailySchedule } from '../storage/scheduleStorage';
+import { getDB, TaskDB, LongTermTask, RecommendedTask, DailyTask } from '../storage/scheduleStorage';
 import emitter from '@/storage/EventEmitter';
 import MyCalendar from '@/components/MyCalendar';
 import { useDate } from '@/context/DateContext';  // 추가
@@ -23,7 +23,7 @@ export default function ScheduleManageScreen() {
 
   const refreshSchedules = async () => {
     const db = await getDB();
-    if (db) setTaskDB(db);
+    setTaskDB(JSON.parse(JSON.stringify(db))); // 깊은 복사로 강제 트리거
   };
 
   useFocusEffect(
@@ -46,12 +46,12 @@ export default function ScheduleManageScreen() {
 
   if (!taskDB) return null;
 
-  const { longTermTasks = [], recommendedTasks = [], dailySchedules = [] } = taskDB;
+  const { longTermTasks = [], recommendedTasks = [], DailyTasks = [] } = taskDB;
 
   const filteredLongTerm = longTermTasks.filter((task: LongTermTask) => !task.isCompleted);
   const filteredRecommended = recommendedTasks.filter((task: RecommendedTask) => !task.isCompleted);
-  const filteredDaily = dailySchedules.filter(
-    (task: DailySchedule) => !task.isCompleted && task.date.slice(0, 10) === selectedDate
+  const filteredDaily = DailyTasks.filter(
+    (task: DailyTask) => !task.isCompleted && task.date.slice(0, 10) === selectedDate
   );
 
   return (
@@ -108,7 +108,7 @@ export default function ScheduleManageScreen() {
                   selectedDate={selectedDate}
                   setSelectedDate={setSelectedDate}
                   setCalendarVisibility={setCalendarVisibility}
-                  dailySchedules={taskDB.dailySchedules}  // 이걸 넘김
+                  DailyTasks={taskDB.DailyTasks}  // 이걸 넘김
                 />
               </View>
             )

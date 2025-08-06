@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
-import { DailySchedule } from '../storage/scheduleStorage';
+import { DailyTask } from '../storage/scheduleStorage';
 
 // 한글 로케일 설정
 LocaleConfig.locales['ko'] = {
@@ -16,7 +16,7 @@ LocaleConfig.defaultLocale = 'ko';
 interface MyCalendarProps {
   selectedDate: string;
   setSelectedDate: (dateString: string) => void;
-  dailySchedules: DailySchedule[];
+  DailyTasks: DailyTask[];
   setCalendarVisibility: (visible: boolean) => void;
   dotType?: 'completed' | 'incomplete';
 }
@@ -24,13 +24,13 @@ interface MyCalendarProps {
 export default function MyCalendar({
   selectedDate,
   setSelectedDate,
-  dailySchedules,
+  DailyTasks,
   setCalendarVisibility,
   dotType = 'incomplete',
 }: MyCalendarProps) {
 
   const markedDates = Object.fromEntries(
-    dailySchedules
+    DailyTasks
       .filter(task => {
         if (dotType === 'completed') return task.isCompleted;
         return !task.isCompleted;
