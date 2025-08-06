@@ -4,16 +4,18 @@ import ScheduleItem from '../components/ScheduleItem';
 import { IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import DateTimePickerModal from "react-native-modal-datetime-picker";
 import DebugDB from '@/components/DebugDB';
-import { cleanUpOldSchedules } from '@/utils/scheduleUtils'
+import { cleanUpOldSchedules } from '@/utils/scheduleUtils';
 import { getDB, TaskDB, LongTermTask, RecommendedTask, DailySchedule } from '../storage/scheduleStorage';
 import emitter from '@/storage/EventEmitter';
+import MyCalendar from '@/components/MyCalendar';
+import { useDate } from '@/context/DateContext';  // 추가
 
 export default function ScheduleCompletedScreen() {
   const [taskDB, setTaskDB] = useState<TaskDB | null>(null);
-  const [isDatePickerVisible, setDatePickerVisibility] = useState<boolean>(false);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isCalendarVisible, setCalendarVisibility] = useState<boolean>(false);
+
+  const { selectedDate, setSelectedDate } = useDate();  // Context 사용
 
   const router = useRouter();
 
@@ -33,14 +35,6 @@ export default function ScheduleCompletedScreen() {
       emitter.off('scheduleChanged', refreshSchedules);
     };
   }, []);
-
-  const handleConfirm = (date: Date) => {
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, "0");
-    const dd = String(date.getDate()).padStart(2, "0");
-    setSelectedDate(`${yyyy}-${mm}-${dd}`);
-    setDatePickerVisibility(false);
-  };
 
   if (!taskDB) return null;
 
@@ -87,7 +81,7 @@ export default function ScheduleCompletedScreen() {
           ))}
         </View>
         <View>
-          <Pressable onPress={() => setDatePickerVisibility(true)}>
+          <Pressable onPress={() => setCalendarVisibility(prev => !prev)}>
             <Text style={styles.sectionTitle}>
               일일 일정{' '}
               <Text style={styles.dateText}>
@@ -99,12 +93,17 @@ export default function ScheduleCompletedScreen() {
               </Text>
             </Text>
           </Pressable>
-          <DateTimePickerModal
-            isVisible={isDatePickerVisible}
-            mode="date"
-            onConfirm={handleConfirm}
-            onCancel={() => setDatePickerVisibility(false)}
-          />
+          {isCalendarVisible && (
+            <View style={styles.calendarContainer}>
+              <MyCalendar
+                selectedDate={selectedDate}
+                setSelectedDate={setSelectedDate}
+                setCalendarVisibility={setCalendarVisibility}
+                dailySchedules={taskDB.dailySchedules}
+                dotType="completed"
+              />
+            </View>
+          )}
           {filteredDaily.map(task => (
             <ScheduleItem
               key={task.id}
@@ -199,5 +198,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#5C2E91",
     padding: 8,
     borderRadius: 4,
+  },
+  calendarContainer: {
+    marginVertical: 10,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    elevation: 5,
   },
 });
