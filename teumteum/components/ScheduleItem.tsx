@@ -60,7 +60,15 @@ export default function ScheduleItem({
     <View style={styles.itemGroup}>
       <Pressable style={styles.container} onPress={handleToggle}>
         <Checkbox status={checked ? 'checked' : 'unchecked'} color={checked_color} />
-        <Text style={[styles.label, { color }]}>{label}</Text>
+        <Text style={[styles.label, { color }]}>{label}{' '}
+          <Text style={styles.dateText}>
+            {type === "장기"
+              ? "~" + dueDate
+              : type === "추천"
+              ? duration + "분 소요"
+              : startTime + "~" + endTime}
+          </Text>
+        </Text>
       </Pressable>
       <IconButton icon="information-outline" size={20} style={styles.icon} onPress={showPopup} />
       {popupVisible && (
@@ -111,5 +119,9 @@ const styles = StyleSheet.create({
   icon: {
     marginLeft: 'auto',
     marginRight: 0,
+  },
+  dateText: {
+    fontSize: 13,
+    fontWeight: 'medium',
   },
 });

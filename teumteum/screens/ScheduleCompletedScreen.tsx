@@ -63,13 +63,27 @@ export default function ScheduleCompletedScreen() {
         <View>
           <Text style={styles.sectionTitle}>장기 일정</Text>
           {filteredLongTerm.map(task => (
-            <ScheduleItem key={task.id} id={task.id} label={task.title} type='장기' isCompleted={true} />
+            <ScheduleItem
+              key={task.id}
+              id={task.id}
+              label={task.title}
+              dueDate={task.dueDate}
+              type='장기'
+              isCompleted={true}
+            />
           ))}
         </View>
         <View>
           <Text style={styles.sectionTitle}>추천 일정</Text>
           {filteredRecommended.map(task => (
-            <ScheduleItem key={task.id} id={task.id} label={task.title} type='추천' isCompleted={true} />
+            <ScheduleItem
+              key={task.id}
+              id={task.id}
+              label={task.title}
+              duration={task.duration}
+              type='추천'
+              isCompleted={true}
+            />
           ))}
         </View>
         <View>
@@ -92,7 +106,16 @@ export default function ScheduleCompletedScreen() {
             onCancel={() => setDatePickerVisibility(false)}
           />
           {filteredDaily.map(task => (
-            <ScheduleItem key={task.id} id={task.id} label={task.title} type='일정' isCompleted={true} />
+            <ScheduleItem
+              key={task.id}
+              id={task.id}
+              label={task.title}
+              date={task.date}
+              startTime={task.startTime}
+              endTime={task.endTime}
+              type='일정'
+              isCompleted={true}
+            />
           ))}
         </View>
       </ScrollView>
