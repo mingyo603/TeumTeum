@@ -47,11 +47,31 @@ export async function initializeDB() {
   }
 }
 
-// DB 읽기
+// DB 읽기 + 정렬 + 저장
 export async function getDB(): Promise<TaskDB | null> {
   const dbString = await AsyncStorage.getItem(STORAGE_KEY);
   if (!dbString) return null;
-  return JSON.parse(dbString);
+
+  const db: TaskDB = JSON.parse(dbString);
+
+  // 🧹 정렬 로직 추가
+  db.longTermTasks.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+
+  db.recommendedTasks.sort((a, b) => {
+    // 원하는 기준이 있다면 여기서 정렬 (예: duration 순)
+    return a.duration - b.duration;
+  });
+
+  db.DailyTasks.sort((a, b) => {
+    const dateA = `${a.date} ${a.startTime}`;
+    const dateB = `${b.date} ${b.startTime}`;
+    return dateA.localeCompare(dateB);
+  });
+
+  // 🧼 정렬된 DB를 다시 저장
+  await setDB(db);
+
+  return db;
 }
 
 // DB 저장

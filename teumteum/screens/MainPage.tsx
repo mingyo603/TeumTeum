@@ -15,6 +15,9 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useRouter, useFocusEffect } from "expo-router";
 import { cleanUpOldSchedules } from "@/utils/scheduleUtils";
 import { getDB, setDB } from "@/storage/scheduleStorage";
+import { generateDisplayTasksForDate } from "@/utils/autoInsertRecommended"; // 📌 추가
+import { DisplayTask } from '../utils/autoInsertRecommended'; // 경로는 실제 위치에 맞게 수정
+
 
 const PURPLE = "#7B52AA";
 const LIGHT_PURPLE = "#A580C0";
@@ -100,10 +103,12 @@ export default function ScheduleScreen() {
   const [visibleSchedule, setVisibleSchedule] = useState<ScheduleItem[]>([]);
   const [longTermTasks, setLongTermTasks] = useState<any[]>([]);
   const [isDatePickerVisible, setDatePickerVisibility] = useState<boolean>(false);
+  const [displayList, setDisplayList] = useState<DisplayTask[]>([]);
 
   const router = useRouter();
 
   useFocusEffect(
+
     useCallback(() => {
       cleanUpOldSchedules();
 
@@ -112,28 +117,10 @@ export default function ScheduleScreen() {
           const db = await getDB();
           if (!db) return;
 
-          const isToday = (dateStr: string | Date) => formatDate(dateStr) === selectedDate;
+          // 1. 추천 일정 DB에 삽입
+          const displayList = await generateDisplayTasksForDate(selectedDate);
+          setDisplayList(displayList); // 상태 업데이트
 
-          const daily = db.DailyTasks.filter(s => isToday(s.date));
-          const dailyFormatted: ScheduleItem[] = daily.map(s => ({
-            id: s.id,
-            timeStart: s.startTime,
-            timeEnd: s.endTime,
-            text: s.title,
-            checked: s.isCompleted,
-            isRecommended: false,
-          }));
-
-          const recommended = db.recommendedTasks;
-
-          const finalCombined = insertRecommendedTasks(dailyFormatted, recommended);
-          setVisibleSchedule(finalCombined);
-
-          const today = new Date(getTodayString());
-          const longTermFiltered = db.longTermTasks.filter(
-            t => !t.isCompleted && new Date(t.dueDate) >= today
-          );
-          setLongTermTasks(longTermFiltered);
         } catch (e) {
           console.error("로드 실패", e);
         }
@@ -200,7 +187,7 @@ export default function ScheduleScreen() {
       />
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
-        {visibleSchedule.map((item, index) => {
+        {displayList.map((item, index) => {
           const current = isCurrent(item);
           const backgroundColor = item.checked
             ? GRAY
@@ -212,27 +199,48 @@ export default function ScheduleScreen() {
           return (
             <View key={item.id ?? `r-${index}`} style={styles.scheduleRow}>
               <View style={styles.timeBox}>
-                <Text style={styles.timeText}>{item.timeStart}</Text>
-                <Text style={styles.timeText}>~</Text>
-                <Text style={styles.timeText}>{item.timeEnd}</Text>
+                {!item.isRecommended ? (
+                  <>
+                    <Text style={styles.timeText}>{item.timeStart}</Text>
+                    <Text style={styles.timeText}>~</Text>
+                    <Text style={styles.timeText}>{item.timeEnd}</Text>
+                  </>
+                ) : null}
               </View>
               <View style={styles.verticalLine} />
-              <Pressable
-                style={[styles.scheduleItem, { backgroundColor }]}
-                onPress={() => !item.isRecommended && handleCheckboxToggle(item)}
-              >
-                {!item.isRecommended && (
-                  <Checkbox
-                    status={item.checked ? "checked" : "unchecked"}
-                    color="white"
-                    uncheckedColor="white"
-                  />
-                )}
-                <Text style={[styles.scheduleText, { color: textColor }]}>
-                  {item.text}
-                </Text>
-              </Pressable>
+              {item.isRecommended ? (
+                <View style={[styles.scheduleItem, styles.backgroundColorRecommended]}>
+                  <View style={styles.iconWrapper}>
+                    <IconButton
+                      icon="lightbulb-on-outline"
+                      size={24}
+                      onPress={() => {}}
+                      style={styles.icon}
+                    />
+                  </View>
+                  <Text style={[styles.scheduleText, styles.textRecommended]}>
+                    {item.text}
+                  </Text>
+                </View>
+              ) : (
+                <Pressable
+                  style={[styles.scheduleItem, { backgroundColor }]}
+                  onPress={() => handleCheckboxToggle(item)}
+                >
+                  <View style={styles.iconWrapper}>
+                    <Checkbox
+                      status={item.checked ? "checked" : "unchecked"}
+                      color="white"
+                      uncheckedColor="white"
+                    />
+                  </View>
+                  <Text style={[styles.scheduleText, { color: textColor, fontWeight: "bold" }]}>
+                    {item.text}
+                  </Text>
+                </Pressable>
+              )}
             </View>
+
           );
         })}
       </ScrollView>
@@ -241,14 +249,83 @@ export default function ScheduleScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white", paddingTop: Platform.OS === "android" ? StatusBar.currentHeight || 24 : 0 },
-  header: { flexDirection: "row", backgroundColor: PURPLE, justifyContent: "space-between", alignItems: "center", padding: 16 },
-  dateButton: { backgroundColor: "#5C2E91", padding: 8, borderRadius: 4 },
-  dateText: { fontSize: 28, fontWeight: "bold", color: "white" },
-  scheduleRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
-  timeBox: { width: 90, justifyContent: "center", alignItems: "center", paddingVertical: 14 },
-  timeText: { fontSize: 15, fontWeight: "600", color: PURPLE, textAlign: "center" },
-  verticalLine: { width: 1, backgroundColor: "#999", marginHorizontal: 8, alignSelf: "stretch" },
-  scheduleItem: { flexDirection: "row", alignItems: "center", padding: 18, borderRadius: 12, flex: 1, minHeight: 60 },
-  scheduleText: { fontSize: 16, flexShrink: 1 },
+  container: { 
+    flex: 1, 
+    backgroundColor: "white", 
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight || 24 : 0 
+  },
+  header: { 
+    flexDirection: "row", 
+    backgroundColor: PURPLE, 
+    justifyContent: "space-between", 
+    alignItems: "center", 
+    padding: 16 
+  },
+  dateButton: { 
+    backgroundColor: "#5C2E91", 
+    padding: 8, 
+    borderRadius: 4 
+  },
+  dateText: { 
+    fontSize: 28, 
+    fontWeight: "bold", 
+    color: "white" 
+  },
+  scheduleRow: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+  },
+  timeBox: { 
+    width: 90, 
+    justifyContent: "center", 
+    alignItems: "center", 
+    paddingVertical: 14, 
+    marginBottom: 10 
+  },
+  timeText: { 
+    fontSize: 15, 
+    fontWeight: "600", 
+    color: PURPLE, 
+    textAlign: "center"
+   },
+  verticalLine: { 
+    width: 1, 
+    backgroundColor: "#999", 
+    marginHorizontal: 8, 
+    alignSelf: "stretch"
+   },
+  scheduleItem: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    padding: 18, 
+    borderRadius: 12, 
+    flex: 1, 
+    minHeight: 60, 
+    marginBottom: 10 
+   },
+  scheduleText: { 
+    fontSize: 16, 
+    flexShrink: 1
+   },
+  backgroundColorRecommended: { 
+    backgroundColor: "white", 
+    borderColor: PURPLE, 
+    borderWidth: 1, 
+    borderRadius: 12,  // <- 추가
+   },
+  textRecommended: { 
+    color: PURPLE, 
+    fontWeight: "bold"
+   },
+  iconWrapper: {
+    width: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8, // 필요 시 여백 조정
+  },
+  icon: {
+    width: 24,
+    height: 24,
+    color: '#5C2E91', // 보라색 아이콘
+  },
 });
