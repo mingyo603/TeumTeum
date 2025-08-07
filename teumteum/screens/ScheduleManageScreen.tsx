@@ -135,9 +135,6 @@ export default function ScheduleManageScreen() {
       {isPopupVisible && (
         <AddSchedulePopup
           onClose={hidePopup}
-          onSave={async () => {
-            await refreshSchedules();
-          }}
         />
       )}
 

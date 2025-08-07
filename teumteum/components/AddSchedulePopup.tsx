@@ -1,4 +1,3 @@
-// AddSchedulePopup.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -13,47 +12,38 @@ import {
 } from 'react-native';
 import DatePicker from './DatePickercomp';
 import { IconButton } from 'react-native-paper';
-import TimePicker from './TimePickercomp';  // TimePicker 컴포넌트 임포트
-import { 
-  addTask, 
-  updateTask, 
-  deleteTask, 
-} from '../storage/scheduleStorage';
-import DebugDB from '@/components/DebugDB';  // 경로는 실제 위치에 맞게
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import TimePicker from './TimePickercomp';
+import { addTask, updateTask, deleteTask } from '../storage/scheduleStorage';
+import DebugDB from '@/components/DebugDB';
 import emitter from '../storage/EventEmitter';
-// 경로는 EventEmitter.ts 파일 위치에 따라 다를 수 있음 (ex: '@/storage/EventEmitter')
 
 interface AddSchedulePopupProps {
   onClose: () => void;
-  onSave: () => void;
-  date?: string; // 기존 유지
-  initialTab?: '장기' | '추천' | '일정'; // ✅ 추가: 초기 탭
   initialValues?: {
-    id?: string; // ✅ 추가
-    title?: string;
-    endDate?: Date;
+    id: string;
+    Tab: '장기' | '추천' | '일정';
+    title: string;
+    dueDate?: Date;
     duration?: string;
     startTime?: Date;
     endTime?: Date;
-    dueDate?: Date;
-  }; // ✅ 추가: 초기값
+  }; // 추가: 초기값
 }
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
+const formatDate = (date: Date) => date.toISOString().split('T')[0];
 
 const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({
-  onClose, onSave, 
-  initialTab = '장기', // ✅ 기본값 지정
-  initialValues = {},   // ✅ 기본값 지정
+  onClose, 
+  initialValues, 
 }) => {
-  // ✅ 초기값 사용하여 상태 설정
-  const [activeTab, setActiveTab] = useState<'장기' | '추천' | '일정'>(initialTab);
-  const [title, setTitle] = useState(initialValues.title ?? '');
-  const [endDate, setEndDate] = useState(initialValues.endDate ?? new Date());
-  const [duration, setDuration] = useState(initialValues.duration ?? '');
-  const [StartTime, setStartTime] = useState(initialValues.startTime ?? new Date());
-  const [EndTime, setEndTime] = useState(initialValues.endTime ?? new Date());
+  // 초기값 사용하여 상태 설정
+  const [activeTab, setActiveTab] = useState<'장기' | '추천' | '일정'>(initialValues?.Tab ?? '장기');
+  const [title, setTitle] = useState(initialValues?.title ?? '');
+  const [dueDate, setdueDate] = useState(initialValues?.dueDate ?? new Date());
+  const [duration, setDuration] = useState(initialValues?.duration ?? '');
+  const [StartTime, setStartTime] = useState(initialValues?.startTime ?? new Date());
+  const [EndTime, setEndTime] = useState(initialValues?.endTime ?? new Date());
 
   // 저장 버튼 눌렀을 때 실행할 함수
   const handleSave = async () => {
@@ -72,7 +62,7 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({
       };
 
       if (activeTab === '장기') {
-        param = {dueDate: endDate.toISOString().split('T')[0]} // "YYYY-MM-DD" 형식
+        param = {dueDate: formatDate(dueDate)} // YYYY-MM-DD
       } else if (activeTab === '추천') {
         const durationNumber = parseInt(duration, 10);
         if (isNaN(durationNumber) || durationNumber <= 0) {
@@ -89,21 +79,20 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({
         const StartString = StartTime.toTimeString().slice(0, 5); // HH:mm
         const EndString = EndTime.toTimeString().slice(0, 5); // HH:mm
         param = {
-            date: endDate.toISOString().split('T')[0], // "YYYY-MM-DD" 형식
-            startTime: StartString,   // 예: "12:00"
-            endTime: EndString,      // 예: "13:00"
+            date: formatDate(dueDate), // YYYY-MM-DD
+            startTime: StartString,
+            endTime: EndString,
         }
       }
       
-      if (initialValues.id) {
-        await updateTask(initialValues.id, initialTab, activeTab,title.trim(), param); 
+      if (initialValues?.id && initialValues?.Tab) {
+        await updateTask(initialValues.id, initialValues.Tab, activeTab,title.trim(), param); 
       } else {
         await addTask(activeTab, title.trim(), param)
       }
       
-      await AsyncStorage.flushGetRequests?.(); // 변경 사항 확정
-      emitter.emit('scheduleChanged');         // 부모 등 구독자에게 알림
-      onClose();  // 저장 후 팝업 닫기
+      emitter.emit('scheduleChanged');  // 부모 등 구독자에게 알림
+      onClose();  // 팝업 닫기
     } catch (error) {
       console.error(error);
       Alert.alert('오류', '일정 저장 중 오류가 발생했습니다.');
@@ -111,7 +100,8 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({
   };
 
   const handleDelete = async () => {
-    if (!initialValues.id) return;
+    const id = initialValues?.id;
+    if (!id) return;
 
     Alert.alert(
       '삭제 확인',
@@ -126,12 +116,10 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({
               // activeTab 값에 따라 타입 구분 ('장기' | '추천' | '일정')
               let type: '장기' | '추천' | '일정' = activeTab;
 
-              // storage 함수 import 가정: deleteTask(type, id)
-              if (initialValues?.id) {
-                await deleteTask(type, initialValues.id);
-              }
+              await deleteTask(type, id);
 
-              onClose(); // 삭제 후 팝업 닫기
+              emitter.emit('scheduleChanged');  // 부모 등 구독자에게 알림
+              onClose(); // 팝업 닫기
             } catch (error) {
               console.error(error);
               Alert.alert('오류', '삭제 중 오류가 발생했습니다.');
@@ -151,14 +139,15 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({
           <View
             style={styles.popupContainer}
             onStartShouldSetResponder={() => true}  // 팝업 내부는 닫히지 않도록
-          >
+            >
             {/* 탭 선택 */}
             <View style={styles.tabRow}>
-              {initialValues.id ? (
-                <IconButton icon="close" size={24} iconColor="#591A85" onPress={handleDelete} />
-              ) : (
-                <IconButton icon="close" size={24} iconColor="#591A85" onPress={onClose} />
-              )}
+              <IconButton 
+                icon="close" 
+                size={24} 
+                iconColor="#591A85" 
+                onPress={initialValues?.id ? handleDelete : onClose} 
+              />
               <View style={styles.tabGroup}>
                 {['장기', '추천', '일정'].map((tab, idx) => (
                   <Pressable
@@ -170,13 +159,13 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({
                       idx === 2 && styles.rightTab,
                     ]}
                     onPress={() => setActiveTab(tab as typeof activeTab)}
-                  >
+                    >
                     <Text
                       style={[
                         styles.tabText,
                         activeTab === tab && styles.activeTabText,
                       ]}
-                    >
+                      >
                       {tab}
                     </Text>
                   </Pressable>
@@ -185,8 +174,9 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({
               <IconButton icon="check" size={24} iconColor="#591A85" onPress={handleSave} />
             </View>
 
-            {/* 공통 입력 */}
-            <View>
+            {/* 입력창 */}
+            <View style={{paddingHorizontal: 12}}>
+              {/* 공통 입력 */}
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>제목</Text>
                 <TextInput
@@ -202,8 +192,8 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>종료 날짜</Text>
                   <DatePicker
-                    date={endDate}
-                    onChange={setEndDate}
+                    date={dueDate}
+                    onChange={setdueDate}
                   />
                 </View>
               )}
@@ -213,7 +203,7 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({
                   <Text style={styles.label}>소요 시간</Text>
                   <View style={styles.rowBox}>
                     <TextInput
-                      style={styles.durationInput}
+                      style={styles.textInput}
                       placeholder="00"
                       keyboardType="number-pad"
                       value={duration}
@@ -229,8 +219,8 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>날짜</Text>
                     <DatePicker
-                      date={endDate}
-                      onChange={setEndDate}
+                      date={dueDate}
+                      onChange={setdueDate}
                     />
                   </View>
                   <View style={styles.inputGroup}>
@@ -312,7 +302,6 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     marginBottom: 20,
-    paddingHorizontal: 12,
   },
   label: {
     marginBottom: 6,
@@ -321,44 +310,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   textInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    fontSize: 20,
     borderWidth: 2,
     borderColor: '#EADDFF',
     borderRadius: 8,
     padding: 10,
-    justifyContent: 'space-between',
-    fontSize: 20,
   },
   rowBox: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  durationInput: {
-    borderWidth: 2,
-    borderColor: '#EADDFF',
-    borderRadius: 8,
-    padding: 10,
-    justifyContent: 'space-between',
-    fontSize: 20,
-  },
   durationText: {
     fontSize: 20,
     paddingHorizontal: 4,
-    padding: 10,
-    justifyContent: 'space-between',
     paddingTop: 5,
+    paddingBottom: 10,
   },
   TimeGroup: {
     flexDirection: 'row',
   },
-  TimePicker: {},
   TimeText: {
     fontSize: 20,
     paddingHorizontal: 4,
-    padding: 10,
-    justifyContent: 'space-between',
     paddingTop: 45,
+    paddingBottom: 10,
   },
 });
 

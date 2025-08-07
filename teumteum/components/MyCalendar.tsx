@@ -27,7 +27,7 @@ export default function MyCalendar({
   DailyTasks,
   setCalendarVisibility,
   dotType = 'incomplete',
-}: MyCalendarProps) {
+  }: MyCalendarProps) {
 
   const markedDates = Object.fromEntries(
     DailyTasks
@@ -56,8 +56,8 @@ export default function MyCalendar({
     markedDates[selectedDate] = {
       selected: true,
       selectedColor: '#591A85',
-      marked: false,              // ⬅ 추가
-      dotColor: '#ffffff',        // ⬅ 추가 (선택된 날짜일 때의 기본 dot 색상)
+      marked: false,
+      dotColor: '#ffffff',
     };
   }
 
@@ -92,7 +92,7 @@ export default function MyCalendar({
         todayTextColor: '#591A85',
         arrowColor: '#591A85',
       }}
-      firstDay={0}
+      firstDay={1}
       renderHeader={renderCustomHeader}
     />
   );
