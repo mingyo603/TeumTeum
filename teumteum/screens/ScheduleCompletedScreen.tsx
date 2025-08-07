@@ -1,17 +1,50 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import ScheduleItem from '../components/ScheduleItem';
 import { IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import DebugDB from '@/components/DebugDB';
+import { cleanUpOldSchedules } from '@/utils/scheduleUtils';
+import { getDB, TaskDB, LongTermTask, RecommendedTask, DailyTask } from '../storage/scheduleStorage';
+import emitter from '@/storage/EventEmitter';
+import MyCalendar from '@/components/MyCalendar';
+import { useDate } from '@/context/DateContext';  // 추가
 
 export default function ScheduleCompletedScreen() {
+  const [taskDB, setTaskDB] = useState<TaskDB | null>(null);
+  const [isCalendarVisible, setCalendarVisibility] = useState<boolean>(false);
+
+  const { selectedDate, setSelectedDate } = useDate();  // Context 사용
+
   const router = useRouter();
-  
-  const scheduleData = {
-    장기: ['SW 대회', '운전면허', '컴활 자격증'],
-    추천: ['영단어 암기', '자격증 공부', '스트레칭'],
+
+  const refreshSchedules = async () => {
+    const db = await getDB();
+    if (db) setTaskDB(db);
   };
+
+  useEffect(() => {
+    refreshSchedules();
+    cleanUpOldSchedules();
+  }, []);
+
+  useEffect(() => {
+    emitter.on('scheduleChanged', refreshSchedules);
+    return () => {
+      emitter.off('scheduleChanged', refreshSchedules);
+    };
+  }, []);
+
+  if (!taskDB) return null;
+
+  const { longTermTasks = [], recommendedTasks = [], DailyTasks = [] } = taskDB;
+
+  const filteredLongTerm = longTermTasks.filter((task: LongTermTask) => task.isCompleted);
+  const filteredRecommended = recommendedTasks.filter((task: RecommendedTask) => task.isCompleted);
+  const filteredDaily = DailyTasks.filter(
+    (task: DailyTask) => task.isCompleted && task.date.slice(0, 10) === selectedDate
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -21,18 +54,76 @@ export default function ScheduleCompletedScreen() {
         <IconButton icon="trash-can-outline" size={22} disabled style={{ opacity: 0 }} />
       </View>
       <ScrollView contentContainerStyle={styles.container}>
-        {Object.entries(scheduleData).map(([category, items]) => (
-          <View key={category}>
-            <Text style={styles.sectionTitle} key={category}>{category} 일정</Text>
-            {items.map((item, index) => (
-              <ScheduleItem key={`${item}-${index}`} label={item} />
-            ))}
-          </View>
-        ))}
+        <View>
+          <Text style={styles.sectionTitle}>장기 일정</Text>
+          {filteredLongTerm.map(task => (
+            <ScheduleItem
+              key={task.id}
+              id={task.id}
+              label={task.title}
+              dueDate={task.dueDate}
+              type='장기'
+              isCompleted={true}
+            />
+          ))}
+        </View>
+        <View>
+          <Text style={styles.sectionTitle}>추천 일정</Text>
+          {filteredRecommended.map(task => (
+            <ScheduleItem
+              key={task.id}
+              id={task.id}
+              label={task.title}
+              duration={task.duration}
+              type='추천'
+              isCompleted={true}
+            />
+          ))}
+        </View>
+        <View>
+          <Pressable onPress={() => setCalendarVisibility(prev => !prev)}>
+            <Text style={styles.sectionTitle}>
+              일일 일정{' '}
+              <Text style={styles.dateText}>
+                {new Date(selectedDate).toLocaleDateString('ko-KR', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                }).replace(/\.\s/g, '.').replace(/\.$/, '')}
+              </Text>
+            </Text>
+          </Pressable>
+          {isCalendarVisible && (
+            <View style={styles.calendarContainer}>
+              <MyCalendar
+                selectedDate={selectedDate}
+                setSelectedDate={setSelectedDate}
+                setCalendarVisibility={setCalendarVisibility}
+                DailyTasks={taskDB.DailyTasks}
+                dotType="completed"
+              />
+            </View>
+          )}
+          {filteredDaily.map(task => (
+            <ScheduleItem
+              key={task.id}
+              id={task.id}
+              label={task.title}
+              date={task.date}
+              startTime={task.startTime}
+              endTime={task.endTime}
+              type='일정'
+              isCompleted={true}
+            />
+          ))}
+        </View>
       </ScrollView>
+
+      <DebugDB />
     </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -41,6 +132,7 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 16,
+    paddingBottom: 100,
   },
   header: {
     flexDirection: 'row',
@@ -53,9 +145,65 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginTop: 20,
-    marginBottom: 8,  
+    marginBottom: 8,
     fontSize: 22,
     fontWeight: 'bold',
     color: '#591A85',
+  },
+  fabContainer: {
+    position: 'absolute',
+    right: 40,
+    bottom: 48,
+    backgroundColor: '#E7E2F1',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    
+    shadowColor: '#000000',
+    shadowOffset: { width: 4, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 20,
+    elevation: 6,
+  },
+  fab: {
+    backgroundColor: '#E7E2F1',
+    borderRadius: 28,
+    width: 56,
+    height: 56,
+    bottom: 5,
+    right: 5,
+
+    // iOS 그림자
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+
+    // Android 그림자
+    elevation: 10,
+  },
+  categoryTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 6,
+    flexDirection: 'row',
+  },
+  dateText: {
+    fontSize: 13,
+    color: '#591A85',
+    fontWeight: 'medium',
+  },
+  dateButton: {
+    backgroundColor: "#5C2E91",
+    padding: 8,
+    borderRadius: 4,
+  },
+  calendarContainer: {
+    marginVertical: 10,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    elevation: 5,
   },
 });
