@@ -1,3 +1,4 @@
+// 생략된 import 문
 import React, { useState, useCallback } from "react";
 import {
   View,
@@ -7,7 +8,6 @@ import {
   Pressable,
   SafeAreaView,
   StatusBar,
-  Alert,
   Platform,
 } from "react-native";
 import { IconButton, Checkbox } from "react-native-paper";
@@ -18,6 +18,8 @@ import { getDB, setDB } from "@/storage/scheduleStorage";
 
 const PURPLE = "#7B52AA";
 const LIGHT_PURPLE = "#A580C0";
+const GRAY = "#CCCCCC";
+const GRAY_TEXT = "#999";
 
 interface ScheduleItem {
   timeStart: string;
@@ -45,7 +47,7 @@ const formatDate = (date: string | Date): string => {
 };
 
 const toMinutes = (time: string) => {
-  const [h, m] = time.split(":".toString()).map(Number);
+  const [h, m] = time.split(":").map(Number);
   return h * 60 + m;
 };
 
@@ -98,7 +100,6 @@ export default function ScheduleScreen() {
   const [visibleSchedule, setVisibleSchedule] = useState<ScheduleItem[]>([]);
   const [longTermTasks, setLongTermTasks] = useState<any[]>([]);
   const [isDatePickerVisible, setDatePickerVisibility] = useState<boolean>(false);
-  const [showLongTermList, setShowLongTermList] = useState<boolean>(false);
 
   const router = useRouter();
 
@@ -135,7 +136,6 @@ export default function ScheduleScreen() {
           setLongTermTasks(longTermFiltered);
         } catch (e) {
           console.error("로드 실패", e);
-          Alert.alert("오류", "일정 로드 중 문제가 발생했습니다.");
         }
       };
 
@@ -168,27 +168,27 @@ export default function ScheduleScreen() {
     );
   };
 
+  const isCurrent = (item: ScheduleItem) => {
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const start = toMinutes(item.timeStart);
+    const end = toMinutes(item.timeEnd);
+    return nowMinutes >= start && nowMinutes < end;
+  };
+
   const handleConfirm = (date: Date) => {
     setSelectedDate(formatDate(date));
     setDatePickerVisibility(false);
   };
 
-  const longTermTitles = longTermTasks.map(t => t.title).join(", ");
-
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-
+      <StatusBar barStyle="light-content" />
       <View style={styles.header}>
         <Pressable onPress={() => setDatePickerVisibility(true)} style={styles.dateButton}>
           <Text style={styles.dateText}>{selectedDate}</Text>
         </Pressable>
-        <IconButton
-          icon="format-list-bulleted"
-          size={24}
-          iconColor="white"
-          onPress={() => router.push("/Manage")}
-        />
+        <IconButton icon="format-list-bulleted" size={24} iconColor="white" onPress={() => router.push("/Manage")} />
       </View>
 
       <DateTimePickerModal
@@ -199,54 +199,18 @@ export default function ScheduleScreen() {
         pickerStyleIOS={{ backgroundColor: PURPLE }}
       />
 
-      <View style={styles.longTermBox}>
-        <Pressable
-          onPress={() => router.push("/Manage")}
-          style={styles.longTermToggle}
-        >
-          <Text style={styles.longTermIcon}>📢</Text>
-          <Text
-            style={styles.longTermText}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
-            {longTermTitles || "없음"}
-          </Text>
-        </Pressable>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
+        {visibleSchedule.map((item, index) => {
+          const current = isCurrent(item);
+          const backgroundColor = item.checked
+            ? GRAY
+            : current
+            ? PURPLE
+            : LIGHT_PURPLE;
+          const textColor = item.checked ? GRAY_TEXT : "white";
 
-        {showLongTermList && (
-          <View style={styles.expandedBox}>
-            {longTermTasks.length === 0 ? (
-              <Text style={styles.longTermItemText}>장기 일정이 없습니다.</Text>
-            ) : (
-              longTermTasks.map(task => (
-                <Pressable
-                  key={task.id}
-                  onPress={() => router.push("/Manage")}
-                  style={styles.longTermItem}
-                >
-                  <Text style={styles.longTermItemText}>{task.title}</Text>
-                </Pressable>
-              ))
-            )}
-          </View>
-        )}
-      </View>
-
-      <View style={{ paddingHorizontal: 20, paddingVertical: 14 }}>
-        <View style={styles.scheduleRow}>
-          <View style={styles.timeBox}>
-            <Text style={[styles.columnHeader, styles.centerText]}>시간</Text>
-          </View>
-          <View style={[styles.verticalLine, { marginTop: 10 }]} />
-          <View style={styles.scheduleHeaderBox}>
-            <Text style={[styles.columnHeader, styles.centerText]}>일정</Text>
-          </View>
-        </View>
-
-        <ScrollView contentContainerStyle={{ paddingBottom: 200 }}>
-          {visibleSchedule.map((item, index) => (
-            <View key={item.id ?? `recommended-${index}`} style={styles.scheduleRow}>
+          return (
+            <View key={item.id ?? `r-${index}`} style={styles.scheduleRow}>
               <View style={styles.timeBox}>
                 <Text style={styles.timeText}>{item.timeStart}</Text>
                 <Text style={styles.timeText}>~</Text>
@@ -254,24 +218,24 @@ export default function ScheduleScreen() {
               </View>
               <View style={styles.verticalLine} />
               <Pressable
-                style={[styles.scheduleItem, item.checked ? styles.checkedItem : styles.uncheckedItem]}
+                style={[styles.scheduleItem, { backgroundColor }]}
                 onPress={() => !item.isRecommended && handleCheckboxToggle(item)}
               >
-                <View style={{ marginLeft: -8, marginRight: 8 }}>
-                  {!item.isRecommended && (
-                    <Checkbox
-                      status={item.checked ? "checked" : "unchecked"}
-                      color="#FFFFFF"
-                      uncheckedColor="#FFFFFF"
-                    />
-                  )}
-                </View>
-                <Text numberOfLines={2} style={styles.scheduleText}>{item.text}</Text>
+                {!item.isRecommended && (
+                  <Checkbox
+                    status={item.checked ? "checked" : "unchecked"}
+                    color="white"
+                    uncheckedColor="white"
+                  />
+                )}
+                <Text style={[styles.scheduleText, { color: textColor }]}>
+                  {item.text}
+                </Text>
               </Pressable>
             </View>
-          ))}
-        </ScrollView>
-      </View>
+          );
+        })}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -281,23 +245,10 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", backgroundColor: PURPLE, justifyContent: "space-between", alignItems: "center", padding: 16 },
   dateButton: { backgroundColor: "#5C2E91", padding: 8, borderRadius: 4 },
   dateText: { fontSize: 28, fontWeight: "bold", color: "white" },
-  longTermBox: { paddingHorizontal: 20, paddingVertical: 12, backgroundColor: "#f0f0f0" },
-  longTermToggle: { flexDirection: "row", alignItems: "center" },
-  longTermIcon: { fontSize: 18, marginRight: 6 },
-  longTermText: { fontSize: 16, color: "#333", fontWeight: "500", flexShrink: 1 },
-  arrow: { fontSize: 14, color: "#555", marginTop: 2 },
-  expandedBox: { marginTop: 8, paddingVertical: 6 },
-  longTermItem: { paddingVertical: 4 },
-  longTermItemText: { fontSize: 15, color: PURPLE },
   scheduleRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
   timeBox: { width: 90, justifyContent: "center", alignItems: "center", paddingVertical: 14 },
   timeText: { fontSize: 15, fontWeight: "600", color: PURPLE, textAlign: "center" },
   verticalLine: { width: 1, backgroundColor: "#999", marginHorizontal: 8, alignSelf: "stretch" },
   scheduleItem: { flexDirection: "row", alignItems: "center", padding: 18, borderRadius: 12, flex: 1, minHeight: 60 },
-  checkedItem: { backgroundColor: PURPLE },
-  uncheckedItem: { backgroundColor: LIGHT_PURPLE },
-  scheduleText: { color: "white", fontSize: 16, flexShrink: 1 },
-  columnHeader: { fontSize: 16, fontWeight: "bold", color: PURPLE },
-  scheduleHeaderBox: { flex: 1, justifyContent: "center", alignItems: "center" },
-  centerText: { textAlign: "center" },
+  scheduleText: { fontSize: 16, flexShrink: 1 },
 });
