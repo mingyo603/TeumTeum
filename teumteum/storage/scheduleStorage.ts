@@ -14,7 +14,7 @@ export interface LongTermTask {
 export interface RecommendedTask {
   id: string;
   title: string;
-  duration: number;
+  duration: number; // in minutes
   isCompleted: boolean;
 }
 
@@ -23,7 +23,7 @@ export interface DailyTask {
   title: string;
   date: string;
   startTime: string;         // HH:mm
-  endTime: string;         // HH:mm
+  endTime: string;           // HH:mm
   isCompleted: boolean;
   completedDate?: string; // ISO 문자열로 완료 날짜 저장, 완료 시점에 기록
 }
@@ -43,7 +43,7 @@ export async function initializeDB() {
       recommendedTasks: [],
       DailyTasks: [],
     };
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(initialDB));
+    await setDB(initialDB);
   }
 }
 
@@ -61,13 +61,13 @@ export async function setDB(db: TaskDB) {
 
 // DB 초기화
 export async function resetDB() {
-  const initialDB: TaskDB = {
+  const emptyDB: TaskDB = {
     longTermTasks: [],
     recommendedTasks: [],
     DailyTasks: [],
   };
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(initialDB));
-  console.log('⚡ DB 완전 초기화 완료');
+  await setDB(emptyDB);
+  console.log('✅ DB 초기화 완료');
 }
 
 // 일정 추가
