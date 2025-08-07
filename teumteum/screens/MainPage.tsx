@@ -1,21 +1,20 @@
-import React, { useState, useEffect } from "react";
-import { IconButton, Checkbox } from 'react-native-paper';
+import React, { useState, useCallback } from "react";
 import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
   Pressable,
   SafeAreaView,
-  ScrollView,
   StatusBar,
-  StyleSheet,
-  Text,
-  View,
   Alert,
   Platform,
-  Dimensions, 
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { IconButton, Checkbox } from "react-native-paper";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
-import { useRouter } from 'expo-router';
-import { cleanUpOldSchedules } from '@/utils/scheduleUtils'
+import { useRouter, useFocusEffect } from "expo-router";
+import { cleanUpOldSchedules } from "@/utils/scheduleUtils";
+import { getDB, setDB } from "@/storage/scheduleStorage";
 
 const PURPLE = "#7B52AA";
 const LIGHT_PURPLE = "#A580C0";
@@ -25,12 +24,8 @@ interface ScheduleItem {
   timeEnd: string;
   text: string;
   checked: boolean;
-  color?: string;
-  checked_color?: string;
-}
-
-interface ScheduleData {
-  [date: string]: ScheduleItem[];
+  isRecommended?: boolean;
+  id?: string;
 }
 
 const getTodayString = (): string => {
@@ -41,108 +36,159 @@ const getTodayString = (): string => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
+const formatDate = (date: string | Date): string => {
+  const d = new Date(date);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const toMinutes = (time: string) => {
+  const [h, m] = time.split(":".toString()).map(Number);
+  return h * 60 + m;
+};
+
+const toTimeStr = (mins: number) => {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+};
+
+function insertRecommendedTasks(daily: ScheduleItem[], recommended: any[]): ScheduleItem[] {
+  const sortedDaily = [...daily].sort((a, b) => a.timeStart.localeCompare(b.timeStart));
+  const result: ScheduleItem[] = [];
+  const remainingRecommended = [...recommended];
+  let lastEnd = 6 * 60;
+
+  for (let i = 0; i <= sortedDaily.length; i++) {
+    const current = sortedDaily[i];
+    const currentStart = current ? toMinutes(current.timeStart) : 24 * 60;
+    const gap = currentStart - lastEnd;
+
+    for (let j = 0; j < remainingRecommended.length; j++) {
+      const task = remainingRecommended[j];
+      const durationMins = task.duration * 60;
+      if (gap >= durationMins + 10) {
+        const newTask: ScheduleItem = {
+          timeStart: toTimeStr(lastEnd),
+          timeEnd: toTimeStr(lastEnd + durationMins),
+          text: `[추천] ${task.title}`,
+          checked: false,
+          isRecommended: true,
+        };
+        result.push(newTask);
+        lastEnd += durationMins;
+        remainingRecommended.splice(j, 1);
+        j--;
+      }
+    }
+
+    if (current) {
+      result.push(current);
+      lastEnd = toMinutes(current.timeEnd);
+    }
+  }
+
+  return result;
+}
+
 export default function ScheduleScreen() {
-  useEffect(() => {
-    cleanUpOldSchedules();
-  }, []); // 빈 배열: 컴포넌트 마운트 시 1회 실행
-  
   const [selectedDate, setSelectedDate] = useState<string>(getTodayString());
   const [visibleSchedule, setVisibleSchedule] = useState<ScheduleItem[]>([]);
+  const [longTermTasks, setLongTermTasks] = useState<any[]>([]);
   const [isDatePickerVisible, setDatePickerVisibility] = useState<boolean>(false);
+  const [showLongTermList, setShowLongTermList] = useState<boolean>(false);
+
   const router = useRouter();
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const raw = await AsyncStorage.getItem("scheduleData");
-        const parsed: ScheduleData = raw ? JSON.parse(raw) : {};
+  useFocusEffect(
+    useCallback(() => {
+      cleanUpOldSchedules();
 
-        if (!parsed[selectedDate] || parsed[selectedDate].length === 0) {
-          parsed[selectedDate] = [
-            {
-              timeStart: "12:00",
-              timeEnd: "13:00",
-              text: "당신을 위한 일정 관리 앱, 틈틈이",
-              checked: false,
-            },
-          ];
-          await AsyncStorage.setItem("scheduleData", JSON.stringify(parsed));
+      const loadAll = async () => {
+        try {
+          const db = await getDB();
+          if (!db) return;
+
+          const isToday = (dateStr: string | Date) => formatDate(dateStr) === selectedDate;
+
+          const daily = db.dailySchedules.filter(s => isToday(s.date));
+          const dailyFormatted: ScheduleItem[] = daily.map(s => ({
+            id: s.id,
+            timeStart: s.startTime,
+            timeEnd: s.endTime,
+            text: s.title,
+            checked: s.isCompleted,
+            isRecommended: false,
+          }));
+
+          const recommended = db.recommendedTasks;
+
+          const finalCombined = insertRecommendedTasks(dailyFormatted, recommended);
+          setVisibleSchedule(finalCombined);
+
+          const today = new Date(getTodayString());
+          const longTermFiltered = db.longTermTasks.filter(
+            t => !t.isCompleted && new Date(t.dueDate) >= today
+          );
+          setLongTermTasks(longTermFiltered);
+        } catch (e) {
+          console.error("로드 실패", e);
+          Alert.alert("오류", "일정 로드 중 문제가 발생했습니다.");
         }
-
-        setVisibleSchedule(parsed[selectedDate]);
-      } catch {
-        Alert.alert("오류", "일정을 불러오는 데 실패했습니다.");
-      }
-    };
-
-    loadData();
-
-    // 개발용 데이터 초기화
-    const overwrite = async () => {
-      const updated = {
-        [selectedDate]: [
-          {
-            timeStart: "10:00",
-            timeEnd: "11:00",
-            text: "수영",
-            checked: false,
-          },
-          {
-            timeStart: "12:00",
-            timeEnd: "13:00",
-            text: "점심식사",
-            checked: false,
-          },
-          {
-            timeStart: "14:00",
-            timeEnd: "16:00",
-            text: "조 모임",
-            checked: false,
-          },
-          {
-            timeStart: "18:00",
-            timeEnd: "19:00",
-            text: "약속",
-            checked: false,
-          },
-        ],
       };
-      await AsyncStorage.setItem("scheduleData", JSON.stringify(updated));
-      setVisibleSchedule(updated[selectedDate]);
-    };
 
-    overwrite();
+      loadAll();
+    }, [selectedDate])
+  );
 
-  }, [selectedDate]);
+  const handleCheckboxToggle = async (item: ScheduleItem) => {
+    if (!item.id) return;
 
-  const toggleCheck = async (index: number) => {
-    const updated = [...visibleSchedule];
-    updated[index].checked = !updated[index].checked;
+    const db = await getDB();
+    if (!db) return;
 
-    const raw = await AsyncStorage.getItem("scheduleData");
-    const parsed = raw ? JSON.parse(raw) : {};
-    parsed[selectedDate] = updated;
+    const updatedSchedules = db.dailySchedules.map(s => {
+      if (s.id === item.id) {
+        return {
+          ...s,
+          isCompleted: !s.isCompleted,
+          completedDate: !s.isCompleted ? new Date() : undefined,
+        };
+      }
+      return s;
+    });
 
-    await AsyncStorage.setItem("scheduleData", JSON.stringify(parsed));
-    setVisibleSchedule(updated);
+    db.dailySchedules = updatedSchedules;
+    await setDB(db);
+
+    setVisibleSchedule(prev =>
+      prev.map(p => (p.id === item.id ? { ...p, checked: !p.checked } : p))
+    );
   };
 
   const handleConfirm = (date: Date) => {
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, "0");
-    const dd = String(date.getDate()).padStart(2, "0");
-    setSelectedDate(`${yyyy}-${mm}-${dd}`);
+    setSelectedDate(formatDate(date));
     setDatePickerVisibility(false);
   };
 
-   return (
+  const longTermTitles = longTermTasks.map(t => t.title).join(", ");
+
+  return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
+
       <View style={styles.header}>
         <Pressable onPress={() => setDatePickerVisibility(true)} style={styles.dateButton}>
           <Text style={styles.dateText}>{selectedDate}</Text>
         </Pressable>
-        <IconButton icon="format-list-bulleted" size={24} iconColor="white" onPress={() => router.push('/Manage')} />
+        <IconButton
+          icon="format-list-bulleted"
+          size={24}
+          iconColor="white"
+          onPress={() => router.push("/Manage")}
+        />
       </View>
 
       <DateTimePickerModal
@@ -153,18 +199,41 @@ export default function ScheduleScreen() {
         pickerStyleIOS={{ backgroundColor: PURPLE }}
       />
 
-      <View>
-        <Pressable onPress={() => router.push('/Manage')}>
-          <View style={styles.alertBox}>
-            <IconButton icon="bullhorn-outline" size={24} />
-            <Text style={styles.alertText}>{selectedDate} 일정 확인하세요!</Text>
-          </View>
+      <View style={styles.longTermBox}>
+        <Pressable
+          onPress={() => router.push("/Manage")}
+          style={styles.longTermToggle}
+        >
+          <Text style={styles.longTermIcon}>📢</Text>
+          <Text
+            style={styles.longTermText}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {longTermTitles || "없음"}
+          </Text>
         </Pressable>
+
+        {showLongTermList && (
+          <View style={styles.expandedBox}>
+            {longTermTasks.length === 0 ? (
+              <Text style={styles.longTermItemText}>장기 일정이 없습니다.</Text>
+            ) : (
+              longTermTasks.map(task => (
+                <Pressable
+                  key={task.id}
+                  onPress={() => router.push("/Manage")}
+                  style={styles.longTermItem}
+                >
+                  <Text style={styles.longTermItemText}>{task.title}</Text>
+                </Pressable>
+              ))
+            )}
+          </View>
+        )}
       </View>
 
-      {/* 🔧 시간/일정 헤더를 일정 row와 구조 맞춤 */}
-      <View style={[{ paddingHorizontal: 20, paddingVertical: 14 }]}>
-
+      <View style={{ paddingHorizontal: 20, paddingVertical: 14 }}>
         <View style={styles.scheduleRow}>
           <View style={styles.timeBox}>
             <Text style={[styles.columnHeader, styles.centerText]}>시간</Text>
@@ -174,28 +243,30 @@ export default function ScheduleScreen() {
             <Text style={[styles.columnHeader, styles.centerText]}>일정</Text>
           </View>
         </View>
+
         <ScrollView contentContainerStyle={{ paddingBottom: 200 }}>
           {visibleSchedule.map((item, index) => (
-            <View key={index} style={styles.scheduleRow}>
+            <View key={item.id ?? `recommended-${index}`} style={styles.scheduleRow}>
               <View style={styles.timeBox}>
                 <Text style={styles.timeText}>{item.timeStart}</Text>
                 <Text style={styles.timeText}>~</Text>
                 <Text style={styles.timeText}>{item.timeEnd}</Text>
               </View>
               <View style={styles.verticalLine} />
-              <Pressable 
-                style={[
-                  styles.scheduleItem,
-                  item.checked ? styles.checkedItem : styles.uncheckedItem,
-                ]}
-                onPress={() => toggleCheck(index)}>
+              <Pressable
+                style={[styles.scheduleItem, item.checked ? styles.checkedItem : styles.uncheckedItem]}
+                onPress={() => !item.isRecommended && handleCheckboxToggle(item)}
+              >
                 <View style={{ marginLeft: -8, marginRight: 8 }}>
-                  <Checkbox
-                    status={item.checked ? 'checked' : 'unchecked'}
-                    color="#FFFFFF" uncheckedColor="#FFFFFF" 
-                  />
+                  {!item.isRecommended && (
+                    <Checkbox
+                      status={item.checked ? "checked" : "unchecked"}
+                      color="#FFFFFF"
+                      uncheckedColor="#FFFFFF"
+                    />
+                  )}
                 </View>
-                <Text numberOfLines={2} style={[styles.scheduleText]}>{item.text}</Text>
+                <Text numberOfLines={2} style={styles.scheduleText}>{item.text}</Text>
               </Pressable>
             </View>
           ))}
@@ -205,92 +276,28 @@ export default function ScheduleScreen() {
   );
 }
 
-// 스타일 수정
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "white",
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight || 24 : 0,
-  },
-  header: {
-    flexDirection: "row",
-    backgroundColor: PURPLE,
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-  },
-  dateButton: {
-    backgroundColor: "#5C2E91",
-    padding: 8,
-    borderRadius: 4,
-  },
-  dateText: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "white",
-  },
-  alertBox: {
-    backgroundColor: "#e0e0e0",
-    paddingHorizontal: 6,
-    flexDirection: 'row',
-    alignItems: 'center', // ← 세로 정렬
-  },
-  alertText: {
-    fontSize: 14,
-    color: "#333",
-  },
-  scheduleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  timeBox: {
-    width: 90,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 14, 
-  },
-  timeText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: PURPLE,
-    textAlign: "center",
-  },
-  verticalLine: {
-    width: 1,
-    backgroundColor: "#999",
-    marginHorizontal: 8,
-    alignSelf: 'stretch',
-  },
-  scheduleItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 18,
-    borderRadius: 12,
-    flex: 1,
-    minHeight: 60,
-  },
-  checkedItem: {
-    backgroundColor: PURPLE,
-  },
-  uncheckedItem: {
-    backgroundColor: LIGHT_PURPLE,
-  },
-  scheduleText: {
-    color: "white",
-    fontSize: 16,
-    flexShrink: 1,
-  },
-  columnHeader: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: PURPLE,
-  },
-  scheduleHeaderBox: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  centerText: {
-    textAlign: "center",
-  },
+  container: { flex: 1, backgroundColor: "white", paddingTop: Platform.OS === "android" ? StatusBar.currentHeight || 24 : 0 },
+  header: { flexDirection: "row", backgroundColor: PURPLE, justifyContent: "space-between", alignItems: "center", padding: 16 },
+  dateButton: { backgroundColor: "#5C2E91", padding: 8, borderRadius: 4 },
+  dateText: { fontSize: 28, fontWeight: "bold", color: "white" },
+  longTermBox: { paddingHorizontal: 20, paddingVertical: 12, backgroundColor: "#f0f0f0" },
+  longTermToggle: { flexDirection: "row", alignItems: "center" },
+  longTermIcon: { fontSize: 18, marginRight: 6 },
+  longTermText: { fontSize: 16, color: "#333", fontWeight: "500", flexShrink: 1 },
+  arrow: { fontSize: 14, color: "#555", marginTop: 2 },
+  expandedBox: { marginTop: 8, paddingVertical: 6 },
+  longTermItem: { paddingVertical: 4 },
+  longTermItemText: { fontSize: 15, color: PURPLE },
+  scheduleRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
+  timeBox: { width: 90, justifyContent: "center", alignItems: "center", paddingVertical: 14 },
+  timeText: { fontSize: 15, fontWeight: "600", color: PURPLE, textAlign: "center" },
+  verticalLine: { width: 1, backgroundColor: "#999", marginHorizontal: 8, alignSelf: "stretch" },
+  scheduleItem: { flexDirection: "row", alignItems: "center", padding: 18, borderRadius: 12, flex: 1, minHeight: 60 },
+  checkedItem: { backgroundColor: PURPLE },
+  uncheckedItem: { backgroundColor: LIGHT_PURPLE },
+  scheduleText: { color: "white", fontSize: 16, flexShrink: 1 },
+  columnHeader: { fontSize: 16, fontWeight: "bold", color: PURPLE },
+  scheduleHeaderBox: { flex: 1, justifyContent: "center", alignItems: "center" },
+  centerText: { textAlign: "center" },
 });

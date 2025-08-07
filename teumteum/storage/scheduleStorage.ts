@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export const STORAGE_KEY = '@teumteum_schedule_db';
 
+// 🔸 인터페이스 정의
 export interface LongTermTask {
   id: string;
   title: string;
@@ -13,7 +14,7 @@ export interface LongTermTask {
 export interface RecommendedTask {
   id: string;
   title: string;
-  duration: number;
+  duration: number; // in minutes
   isCompleted: boolean;
 }
 
@@ -22,9 +23,9 @@ export interface DailySchedule {
   title: string;
   date: Date;
   startTime: string;         // HH:mm
-  endTime: string;         // HH:mm
+  endTime: string;           // HH:mm
   isCompleted: boolean;
-  completedDate?: Date; // ISO 문자열로 완료 날짜 저장, 완료 시점에 기록
+  completedDate?: Date;      // 일정 완료한 날짜 (optional)
 }
 
 export interface TaskDB {
@@ -33,7 +34,50 @@ export interface TaskDB {
   dailySchedules: DailySchedule[];
 }
 
-// DB 초기화
+// 🔸 DB 저장 함수
+export async function setDB(db: TaskDB) {
+  // Date 객체 → 문자열로 변환 후 저장
+  const serialized: any = {
+    ...db,
+    longTermTasks: db.longTermTasks.map(t => ({
+      ...t,
+      dueDate: t.dueDate.toISOString(),
+    })),
+    dailySchedules: db.dailySchedules.map(s => ({
+      ...s,
+      date: s.date.toISOString(),
+      completedDate: s.completedDate ? s.completedDate.toISOString() : undefined,
+    })),
+  };
+
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(serialized));
+}
+
+// 🔸 DB 불러오기 + 날짜 복원
+export async function getDB(): Promise<TaskDB> {
+  const dbString = await AsyncStorage.getItem(STORAGE_KEY);
+  if (!dbString) {
+    return { longTermTasks: [], recommendedTasks: [], dailySchedules: [] };
+  }
+
+  const parsed = JSON.parse(dbString);
+
+  // 날짜 문자열 → Date 객체 복원
+  parsed.longTermTasks = parsed.longTermTasks.map((t: any) => ({
+    ...t,
+    dueDate: new Date(t.dueDate),
+  }));
+
+  parsed.dailySchedules = parsed.dailySchedules.map((s: any) => ({
+    ...s,
+    date: new Date(s.date),
+    completedDate: s.completedDate ? new Date(s.completedDate) : undefined,
+  }));
+
+  return parsed;
+}
+
+// 🔸 DB 초기화
 export async function initializeDB() {
   const dbString = await AsyncStorage.getItem(STORAGE_KEY);
   if (!dbString) {
@@ -42,25 +86,13 @@ export async function initializeDB() {
       recommendedTasks: [],
       dailySchedules: [],
     };
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(initialDB));
+    await setDB(initialDB);
   }
 }
 
-// DB 읽기
-export async function getDB(): Promise<TaskDB | null> {
-  const dbString = await AsyncStorage.getItem(STORAGE_KEY);
-  if (!dbString) return null;
-  return JSON.parse(dbString);
-}
-
-// DB 저장
-export async function setDB(db: TaskDB) {
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-}
-
-// 장기 일정 추가 함수
+// 🔸 장기 일정 추가
 export async function addLongTermTask(title: string, dueDate: Date) {
-  const db = (await getDB()) || { longTermTasks: [], recommendedTasks: [], dailySchedules: [] };
+  const db = await getDB();
   const newTask: LongTermTask = {
     id: uuidv4(),
     title,
@@ -72,9 +104,9 @@ export async function addLongTermTask(title: string, dueDate: Date) {
   return newTask;
 }
 
-// 추천 일정 추가 함수
+// 🔸 추천 일정 추가
 export async function addRecommendedTask(title: string, duration: number) {
-  const db = (await getDB()) || { longTermTasks: [], recommendedTasks: [], dailySchedules: [] };
+  const db = await getDB();
   const newTask: RecommendedTask = {
     id: uuidv4(),
     title,
@@ -86,10 +118,9 @@ export async function addRecommendedTask(title: string, duration: number) {
   return newTask;
 }
 
-// 일일 일정 추가 함수
+// 🔸 일일 일정 추가
 export async function addDailySchedule(title: string, date: Date, startTime: string, endTime: string) {
-  const db = (await getDB()) || { longTermTasks: [], recommendedTasks: [], dailySchedules: [] };
-  const completedDate = new Date("2025-06-02");
+  const db = await getDB();
   const newSchedule: DailySchedule = {
     id: uuidv4(),
     title,
@@ -97,19 +128,31 @@ export async function addDailySchedule(title: string, date: Date, startTime: str
     startTime,
     endTime,
     isCompleted: false,
-    completedDate: undefined, // 완료 날짜는 아직 없으니 undefined로 설정
+    completedDate: undefined,
   };
   db.dailySchedules.push(newSchedule);
   await setDB(db);
   return newSchedule;
 }
 
+// 🔸 일정 완료 상태 토글 + 저장
+export async function toggleDailyScheduleComplete(scheduleId: string) {
+  const db = await getDB();
+  const schedule = db.dailySchedules.find(s => s.id === scheduleId);
+  if (schedule) {
+    schedule.isCompleted = !schedule.isCompleted;
+    schedule.completedDate = schedule.isCompleted ? new Date() : undefined;
+    await setDB(db);
+  }
+}
+
+// 🔸 DB 완전 초기화 (개발용)
 export async function resetDB() {
-  const initialDB: TaskDB = {
+  const emptyDB: TaskDB = {
     longTermTasks: [],
     recommendedTasks: [],
     dailySchedules: [],
   };
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(initialDB));
-  console.log('⚡ DB 완전 초기화 완료');
+  await setDB(emptyDB);
+  console.log('✅ DB 초기화 완료');
 }
