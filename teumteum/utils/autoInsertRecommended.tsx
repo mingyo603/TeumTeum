@@ -2,6 +2,7 @@ import { DailyTask, RecommendedTask, getDB } from '@/storage/scheduleStorage'; /
 
 export interface DisplayTask extends Partial<DailyTask>, Partial<RecommendedTask> {
   type: '일정' | '추천';
+  id: string;
   timeStart: string;
   timeEnd: string;
   text: string;
@@ -41,11 +42,11 @@ export async function generateDisplayTasksForDate(date: string): Promise<Display
 
 
   const displayList: DisplayTask[] = [];
-  const MIN_GAP = 0; // 최소 여유 시간 (분)
 
   for (let i = 0; i < dailyTasks.length; i++) {
     const current = dailyTasks[i];
     displayList.push({
+      id: current.id,
       text: current.title,
       checked: current.isCompleted,
       timeStart: current.startTime,
@@ -59,7 +60,7 @@ export async function generateDisplayTasksForDate(date: string): Promise<Display
 
     const gap = getTimeGapInMinutes(current.endTime, next.startTime);
 
-    if (gap >= MIN_GAP && recommendedTasks.length > 0) {
+    if (recommendedTasks.length > 0) {
       // 1. gap 이하인 추천 일정 필터링
       const candidates = recommendedTasks.filter(task => task.duration <= gap);
 
@@ -76,11 +77,12 @@ export async function generateDisplayTasksForDate(date: string): Promise<Display
 
         // 5. 선택된 일정 displayList에 추가
         displayList.push({
+          id: recommended.id,
           text: recommended.title,
           checked: recommended.isCompleted,
           duration: recommended.duration,
-          timeStart: '00:00',
-          timeEnd: '00:00',
+          timeStart: current.endTime,
+          timeEnd: next.startTime,
           type: '추천',
           isRecommended: true,
         });
@@ -88,30 +90,5 @@ export async function generateDisplayTasksForDate(date: string): Promise<Display
     }
 
   }
-
-  // 마지막 일정이거나 하나만 있는 경우
-  if (dailyTasks.length === 1 || displayList.length === 0) {
-    displayList.push({
-      text: dailyTasks[0].title,
-      checked: dailyTasks[0].isCompleted,
-      timeStart: dailyTasks[0].startTime,
-      timeEnd: dailyTasks[0].endTime,
-      type: '일정',
-      isRecommended: false,
-    });
-
-    if (recommendedTasks.length > 0) {
-      displayList.push({
-        text: recommendedTasks[0].title,
-        checked: recommendedTasks[0].isCompleted,
-        duration: recommendedTasks[0].duration,
-        type: '추천',
-        timeStart: '00:00',
-        timeEnd: '00:00',
-        isRecommended: true,
-      });
-    }
-  }
-
   return displayList;
 }

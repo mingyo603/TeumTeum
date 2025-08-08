@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, StatusBar, } from 'react-native';
 import ScheduleItem from '../components/ScheduleItem';
 import { IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -56,6 +56,8 @@ export default function ScheduleManageScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" />
+
       <View style={styles.header}>
         <IconButton icon="arrow-left" size={22} onPress={() => router.back()} />
         <Text style={styles.title}>일정 관리</Text>

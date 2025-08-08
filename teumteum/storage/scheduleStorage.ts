@@ -173,19 +173,19 @@ export async function updateTask(
     switch (newType) {
       case '장기': {
         db.longTermTasks = db.longTermTasks.map(task =>
-          task.id === id ? { ...task, ...params } : task
+          task.id === id ? { ...task, title, ...params } : task
         );
         break;
       }
       case '추천': {
         db.recommendedTasks = db.recommendedTasks.map(task =>
-          task.id === id ? { ...task, ...params } : task
+          task.id === id ? { ...task, title, ...params } : task
         );
         break;
       }
       case '일정': {
         db.DailyTasks = db.DailyTasks.map(task =>
-          task.id === id ? { ...task, ...params } : task
+          task.id === id ? { ...task, title, ...params } : task
         );
         break;
       }
