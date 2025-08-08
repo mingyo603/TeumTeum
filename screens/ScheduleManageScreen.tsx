@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, StatusBar, } from 'react-native';
-import ScheduleItem from '../components/ScheduleItem';
+import AddSchedulePopup from '@/components/AddSchedulePopup';
+import DebugDB from '@/components/DebugDB';
+import MyCalendar from '@/components/MyCalendar';
+import { useDate } from '@/context/DateContext'; // 추가
+import emitter from '@/storage/EventEmitter';
+import { cleanUpOldSchedules } from '@/utils/scheduleUtils';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Pressable, ScrollView, StatusBar, StyleSheet, Text, View, } from 'react-native';
 import { IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AddSchedulePopup from '@/components/AddSchedulePopup';
-import { useRouter, useFocusEffect } from 'expo-router';
-import DebugDB from '@/components/DebugDB';
-import { cleanUpOldSchedules } from '@/utils/scheduleUtils';
-import { getDB, TaskDB, LongTermTask, RecommendedTask, DailyTask } from '../storage/scheduleStorage';
-import emitter from '@/storage/EventEmitter';
-import MyCalendar from '@/components/MyCalendar';
-import { useDate } from '@/context/DateContext';  // 추가
+import ScheduleItem from '../components/ScheduleItem';
+import { DailyTask, getDB, initializeDB, LongTermTask, RecommendedTask, TaskDB } from '../storage/scheduleStorage';
 
 export default function ScheduleManageScreen() {
   const [isPopupVisible, setIsPopupVisible] = useState(false);
@@ -44,7 +44,10 @@ export default function ScheduleManageScreen() {
   const showPopup = () => setIsPopupVisible(true);
   const hidePopup = () => setIsPopupVisible(false);
 
-  if (!taskDB) return null;
+  if (!taskDB) {
+    initializeDB()
+    return null; // 여기서 바로 종료해야 TS가 이후에 taskDB가 null이 아님을 확신
+  }
 
   const { longTermTasks = [], recommendedTasks = [], DailyTasks = [] } = taskDB;
 

@@ -6,3 +6,7 @@ node_modules
 .idea
 dist
 *.log
+android
+ios
+.git
+*.lock

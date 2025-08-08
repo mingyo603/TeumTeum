@@ -1,11 +1,11 @@
+import { DateProvider } from '@/context/DateContext';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-import 'react-native-get-random-values';
 import React from 'react';
-import { DateProvider } from '@/context/DateContext';
+import 'react-native-get-random-values';
+import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -26,7 +26,7 @@ export default function RootLayout() {
           <Stack.Screen name="main" options={{ title: '메인 화면', headerShown: false }} />
           <Stack.Screen name="Manage" options={{ title: '관리 페이지', headerShown: false }} />
           <Stack.Screen name="Completed" options={{ title: '완료 페이지', headerShown: false }} />
-          <Stack.Screen name="+not-found" />
+          <Stack.Screen name="not-found" />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>
