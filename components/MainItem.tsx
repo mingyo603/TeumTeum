@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { Pressable, Text, StyleSheet, View } from 'react-native';
-import { Checkbox, IconButton } from 'react-native-paper';
-import { toggleCompleted } from '@/storage/scheduleStorage';
 import AddSchedulePopup from '@/components/AddSchedulePopup';
+import { toggleCompleted } from '@/storage/scheduleStorage';
 import { DisplayTask } from "@/utils/autoInsertRecommended"; // 📌 추가
+import React, { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Checkbox, IconButton } from 'react-native-paper';
 
 const PURPLE = "#7B52AA";
 
@@ -61,6 +61,7 @@ export function MainDaily({
         </Text>
         <IconButton icon="information-outline" size={16} style={styles.icon} iconColor='white' onPress={showPopup} />
         {popupVisible && (
+          console.log(item.date, item.timeStart, item.timeEnd),
           <AddSchedulePopup
             onClose={() => setPopupVisible(false)}
             initialValues={{
@@ -68,8 +69,8 @@ export function MainDaily({
               title: item.text,
               id: item.id,
               dueDate: item.date ? new Date(item.date as string) : undefined,
-              startTime: item.startTime ? new Date(`${item.date}T${item.startTime}:00`) : undefined,
-              endTime: item.endTime ? new Date(`${item.date}T${item.endTime}:00`) : undefined,
+              startTime: item.timeStart ? new Date(`${item.date}T${item.timeStart}:00`) : undefined,
+              endTime: item.timeEnd ? new Date(`${item.date}T${item.timeEnd}:00`) : undefined,
             }}
           />
         )}

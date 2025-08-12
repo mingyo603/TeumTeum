@@ -3,6 +3,7 @@ import { DailyTask, RecommendedTask, getDB } from '@/storage/scheduleStorage'; /
 export interface DisplayTask extends Partial<DailyTask>, Partial<RecommendedTask> {
   type: '일정' | '추천';
   id: string;
+  date: string;
   timeStart: string;
   timeEnd: string;
   text: string;
@@ -47,6 +48,7 @@ export async function generateDisplayTasksForDate(date: string): Promise<Display
     const current = dailyTasks[i];
     displayList.push({
       id: current.id,
+      date: current.date,
       text: current.title,
       checked: current.isCompleted,
       timeStart: current.startTime,
@@ -78,6 +80,7 @@ export async function generateDisplayTasksForDate(date: string): Promise<Display
         // 5. 선택된 일정 displayList에 추가
         displayList.push({
           id: recommended.id,
+          date: current.date,
           text: recommended.title,
           checked: recommended.isCompleted,
           duration: recommended.duration,
