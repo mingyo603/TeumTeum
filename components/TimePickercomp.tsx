@@ -21,7 +21,7 @@ const TimePicker: React.FC<Props> = ({ time, onChange }) => {
 
     if (selectedDate) {
       setShowPicker(false);
-      onChange(selectedDate); // ✅ 부모로 전달
+      onChange(selectedDate); // 부모로 전달
     }
   };
 

@@ -1,7 +1,7 @@
 import AddSchedulePopup from '@/components/AddSchedulePopup';
 import DebugDB from '@/components/DebugDB';
 import MyCalendar from '@/components/MyCalendar';
-import { useDate } from '@/context/DateContext'; // 추가
+import { useDate } from '@/context/DateContext'; 
 import emitter from '@/storage/EventEmitter';
 import { cleanUpOldSchedules } from '@/utils/scheduleUtils';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -17,13 +17,13 @@ export default function ScheduleManageScreen() {
   const [taskDB, setTaskDB] = useState<TaskDB | null>(null);
   const [isCalendarVisible, setCalendarVisibility] = useState<boolean>(false);
 
-  const { selectedDate, setSelectedDate } = useDate();  // Context 사용
+  const { selectedDate, setSelectedDate } = useDate();  
 
   const router = useRouter();
 
   const refreshSchedules = async () => {
     const db = await getDB();
-    setTaskDB(JSON.parse(JSON.stringify(db))); // 깊은 복사로 강제 트리거
+    setTaskDB(JSON.parse(JSON.stringify(db))); // 깊은 복사로 강제 새로고침
   };
 
   useFocusEffect(
@@ -151,7 +151,7 @@ export default function ScheduleManageScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: 'white', // 상태바 배경과 동일하게
+    backgroundColor: 'white', 
   },
   container: {
     padding: 16,
@@ -196,13 +196,11 @@ const styles = StyleSheet.create({
     bottom: 5,
     right: 5,
 
-    // iOS 그림자
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
 
-    // Android 그림자
     elevation: 10,
   },
   categoryTitle: {

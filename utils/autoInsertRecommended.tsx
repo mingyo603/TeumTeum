@@ -1,4 +1,4 @@
-import { DailyTask, RecommendedTask, getDB } from '@/storage/scheduleStorage'; // 경로 수정 필요
+import { DailyTask, RecommendedTask, getDB } from '@/storage/scheduleStorage';
 
 export interface DisplayTask extends Partial<DailyTask>, Partial<RecommendedTask> {
   type: '일정' | '추천';
@@ -63,21 +63,21 @@ export async function generateDisplayTasksForDate(date: string): Promise<Display
     const gap = getTimeGapInMinutes(current.endTime, next.startTime);
 
     if (recommendedTasks.length > 0) {
-      // 1. gap 이하인 추천 일정 필터링
+      // gap 이하인 추천 일정 필터링
       const candidates = recommendedTasks.filter(task => task.duration <= gap);
 
       if (candidates.length > 0) {
-        // 2. 최대 duration 찾기
+        // 최대 duration 찾기
         const maxDuration = Math.max(...candidates.map(t => t.duration));
 
-        // 3. 최대 duration인 일정들만 다시 필터링
+        // 최대 duration인 일정들만 다시 필터링
         const maxDurationTasks = candidates.filter(t => t.duration === maxDuration);
 
-        // 4. maxDurationTasks 중에서 랜덤 선택
+        // maxDurationTasks 중에서 랜덤 선택
         const randomIndex = Math.floor(Math.random() * maxDurationTasks.length);
         const recommended = maxDurationTasks[randomIndex];
 
-        // 5. 선택된 일정 displayList에 추가
+        // 선택된 일정 displayList에 추가
         displayList.push({
           id: recommended.id,
           date: current.date,

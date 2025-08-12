@@ -27,7 +27,7 @@ interface AddSchedulePopupProps {
     duration?: string;
     startTime?: Date;
     endTime?: Date;
-  }; // 추가: 초기값
+  };
 }
 
 const { height } = Dimensions.get('window');
@@ -91,7 +91,7 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({
         await addTask(activeTab, title.trim(), param)
       }
       
-      emitter.emit('scheduleChanged');  // 부모 등 구독자에게 알림
+      emitter.emit('scheduleChanged');
       onClose();  // 팝업 닫기
     } catch (error) {
       console.error(error);
@@ -118,7 +118,7 @@ const AddSchedulePopup: React.FC<AddSchedulePopupProps> = ({
 
               await deleteTask(type, id);
 
-              emitter.emit('scheduleChanged');  // 부모 등 구독자에게 알림
+              emitter.emit('scheduleChanged'); 
               onClose(); // 팝업 닫기
             } catch (error) {
               console.error(error);

@@ -54,11 +54,11 @@ export async function getDB(): Promise<TaskDB | null> {
 
   const db: TaskDB = JSON.parse(dbString);
 
-  // 🧹 정렬 로직 추가
+  // 정렬 로직 추가
   db.longTermTasks.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 
   db.recommendedTasks.sort((a, b) => {
-    // 원하는 기준이 있다면 여기서 정렬 (예: duration 순)
+    // 원하는 기준으로 정렬 
     return a.duration - b.duration;
   });
 
@@ -68,7 +68,7 @@ export async function getDB(): Promise<TaskDB | null> {
     return dateA.localeCompare(dateB);
   });
 
-  // 🧼 정렬된 DB를 다시 저장
+  // 정렬된 DB를 다시 저장
   await setDB(db);
 
   return db;
@@ -87,7 +87,7 @@ export async function resetDB() {
     DailyTasks: [],
   };
   await setDB(emptyDB);
-  console.log('✅ DB 초기화 완료');
+  console.log('DB 초기화 완료');
 }
 
 // 일정 추가
@@ -200,7 +200,7 @@ export async function updateTask(
   }
 }
 
-// 완료 상태 토글
+// 완료 상태 토글(껐다켰다)
 export async function toggleCompleted(type: TaskType, id: string) {
   const db = (await getDB()) || { longTermTasks: [], recommendedTasks: [], DailyTasks: [] };
   if (type === '장기') {

@@ -1,6 +1,6 @@
 import AddSchedulePopup from '@/components/AddSchedulePopup';
 import { toggleCompleted } from '@/storage/scheduleStorage';
-import { DisplayTask } from "@/utils/autoInsertRecommended"; // 📌 추가
+import { DisplayTask } from "@/utils/autoInsertRecommended";
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Checkbox, IconButton } from 'react-native-paper';

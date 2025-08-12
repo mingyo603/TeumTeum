@@ -9,13 +9,13 @@ import { cleanUpOldSchedules } from '@/utils/scheduleUtils';
 import { getDB, TaskDB, LongTermTask, RecommendedTask, DailyTask } from '../storage/scheduleStorage';
 import emitter from '@/storage/EventEmitter';
 import MyCalendar from '@/components/MyCalendar';
-import { useDate } from '@/context/DateContext';  // 추가
+import { useDate } from '@/context/DateContext'; 
 
 export default function ScheduleCompletedScreen() {
   const [taskDB, setTaskDB] = useState<TaskDB | null>(null);
   const [isCalendarVisible, setCalendarVisibility] = useState<boolean>(false);
 
-  const { selectedDate, setSelectedDate } = useDate();  // Context 사용
+  const { selectedDate, setSelectedDate } = useDate();
 
   const router = useRouter();
 
@@ -129,7 +129,7 @@ export default function ScheduleCompletedScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: 'white', // 상태바 배경과 동일하게
+    backgroundColor: 'white', 
   },
   container: {
     padding: 16,

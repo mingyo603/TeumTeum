@@ -3,7 +3,7 @@ import { Pressable, Text, StyleSheet, View } from 'react-native';
 import { Checkbox, IconButton } from 'react-native-paper';
 import { toggleCompleted } from '@/storage/scheduleStorage';
 import AddSchedulePopup from '@/components/AddSchedulePopup';
-import emitter from '@/storage/EventEmitter';  // 경로 맞춰서 import
+import emitter from '@/storage/EventEmitter'; 
 
 interface Props {
   id: string;
@@ -38,7 +38,7 @@ export default function ScheduleItem({
     if (updatedTask) {
       setChecked(updatedTask.isCompleted);
       await sleep(150); // 1초 (1000ms) 기다림
-      // 변경 발생 알림 이벤트 발행
+      // 변경 발생 알림 이벤트
       emitter.emit('scheduleChanged');
     }
   };

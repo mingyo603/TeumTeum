@@ -16,9 +16,9 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useRouter, useFocusEffect } from "expo-router";
 import { cleanUpOldSchedules } from "@/utils/scheduleUtils";
 import { getDB, TaskDB } from "@/storage/scheduleStorage";
-import { generateDisplayTasksForDate, DisplayTask } from "@/utils/autoInsertRecommended"; // 📌 추가
-import { MainDaily, MainRecommended } from '@/components/MainItem'; // 📌 MainDaily 컴포넌트 import
-import { useDate } from '@/context/DateContext';  // 추가
+import { generateDisplayTasksForDate, DisplayTask } from "@/utils/autoInsertRecommended"; 
+import { MainDaily, MainRecommended } from '@/components/MainItem'; 
+import { useDate } from '@/context/DateContext';
 import emitter from '@/storage/EventEmitter';
 
 const PURPLE = "#7B52AA";
@@ -40,7 +40,7 @@ const formatDate = (date: string | Date): string => {
 };
 
 export default function ScheduleScreen() {
-  const { selectedDate, setSelectedDate } = useDate();  // Context 사용
+  const { selectedDate, setSelectedDate } = useDate(); 
   const [isDatePickerVisible, setDatePickerVisibility] = useState<boolean>(false);
   const [displayList, setDisplayList] = useState<DisplayTask[]>([]);
   const [longTermTasks, setLongTermTasks] = useState<any[]>([]);
@@ -87,10 +87,10 @@ export default function ScheduleScreen() {
           const db = await getDB();
           if (!db) return;
 
-          // ✅ longTermTasks 상태 업데이트
+          // longTermTasks 상태 업데이트
           setLongTermTasks(db.longTermTasks || []);
 
-          // ✅ 추천 일정 상태 업데이트
+          // 추천 일정 상태 업데이트
           const displayList = await generateDisplayTasksForDate(selectedDate);
           setDisplayList(displayList);
 
@@ -251,12 +251,12 @@ const styles = StyleSheet.create({
   },
   TapGroup: { 
     flexDirection: "row", 
-    backgroundColor: "#fff", // <- 필수! (투명하면 그림자 안 나옴)
-    shadowColor: '#000', // 그림자 색
-    shadowOffset: { width: 0, height: 2 }, // 그림자 위치
-    shadowOpacity: 0.1, // 투명도
-    shadowRadius: 3, // 블러 정도
-    elevation: 3, // 안드로이드 전용 (숫자 클수록 진하고 높아짐)
+    backgroundColor: "#fff", 
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 }, 
+    shadowOpacity: 0.1, 
+    shadowRadius: 3, 
+    elevation: 3, 
   }, 
    RowGroup: {
     alignItems: "center", 
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
   iconWrapper: {
     width: 24,
     alignItems: 'center',
-    marginRight: 8, // 필요 시 여백 조정
+    marginRight: 8, 
   },
   icon: {
     height: 24,
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     paddingLeft: 6,
     paddingRight: 20,
     flexDirection: 'row',
-    alignItems: 'center', // ← 세로 정렬
+    alignItems: 'center', 
     backgroundColor: '#f0f0f0',
   },
   longTermText: { 

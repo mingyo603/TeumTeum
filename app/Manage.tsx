@@ -1,6 +1,6 @@
 // app/(tabs)/test.tsx
 
-import ScheduleManageScreen from '@/screens/ScheduleManageScreen'; // 또는 ScheduleCompletedScreen
+import ScheduleManageScreen from '@/screens/ScheduleManageScreen';
 import React from 'react';
 import 'react-native-get-random-values';
 
