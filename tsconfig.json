@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",             // 프로젝트 루트
+    "paths": {
+      "@/*": ["*"]               // @/ 로 시작하면 루트 기준
+    }, 
+    "jsx": "react-jsx", // React 17 이상이면 react-jsx, 그 이하면 react
+    "esModuleInterop": true
+  }
+}
