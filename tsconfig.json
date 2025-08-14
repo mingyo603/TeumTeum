@@ -1,10 +1,38 @@
 {
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "baseUrl": ".",             // 프로젝트 루트
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["*"]               // @/ 로 시작하면 루트 기준
-    }, 
-    "jsx": "react-jsx", // React 17 이상이면 react-jsx, 그 이하면 react
-    "esModuleInterop": true
-  }
+      "@/*": [
+        "*"
+      ],
+      "@/components/*": [
+        "components/*"
+      ],
+      "@/screens/*": [
+        "screens/*"
+      ],
+      "@/storage/*": [
+        "storage/*"
+      ],
+      "@/utils/*": [
+        "utils/*"
+      ],
+      "@/context/*": [
+        "context/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

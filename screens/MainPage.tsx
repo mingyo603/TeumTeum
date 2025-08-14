@@ -1,25 +1,25 @@
 // ScheduleScreenWithLongTerm.tsx
-import React, { useState, useCallback, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  SafeAreaView,
-  StatusBar,
-  Alert,
-  Platform,
-} from "react-native";
-import { IconButton } from "react-native-paper";
-import DateTimePickerModal from "react-native-modal-datetime-picker";
-import { useRouter, useFocusEffect } from "expo-router";
-import { cleanUpOldSchedules } from "@/utils/scheduleUtils";
-import { getDB, TaskDB } from "@/storage/scheduleStorage";
-import { generateDisplayTasksForDate, DisplayTask } from "@/utils/autoInsertRecommended"; 
-import { MainDaily, MainRecommended } from '@/components/MainItem'; 
+import { MainDaily, MainRecommended } from '@/components/MainItem';
 import { useDate } from '@/context/DateContext';
 import emitter from '@/storage/EventEmitter';
+import { getDB, TaskDB } from "@/storage/scheduleStorage";
+import { DisplayTask, generateDisplayTasksForDate } from "@/utils/autoInsertRecommended";
+import { cleanUpOldSchedules } from "@/utils/scheduleUtils";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import {
+  Alert,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { IconButton } from "react-native-paper";
 
 const PURPLE = "#7B52AA";
 

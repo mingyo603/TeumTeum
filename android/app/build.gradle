@@ -175,3 +175,11 @@ dependencies {
         implementation jscFlavor
     }
 }
+android {
+    // ...
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+}

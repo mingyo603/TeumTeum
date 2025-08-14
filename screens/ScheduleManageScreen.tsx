@@ -1,11 +1,11 @@
 import AddSchedulePopup from '@/components/AddSchedulePopup';
 import DebugDB from '@/components/DebugDB';
 import MyCalendar from '@/components/MyCalendar';
-import { useDate } from '@/context/DateContext'; 
+import { useDate } from '@/context/DateContext';
 import emitter from '@/storage/EventEmitter';
 import { cleanUpOldSchedules } from '@/utils/scheduleUtils';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StatusBar, StyleSheet, Text, View, } from 'react-native';
 import { IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -46,6 +46,7 @@ export default function ScheduleManageScreen() {
 
   if (!taskDB) {
     initializeDB()
+    refreshSchedules();
     return null; // 여기서 바로 종료해야 TS가 이후에 taskDB가 null이 아님을 확신
   }
 
